@@ -13,48 +13,53 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
-#include <malloc.h>
 
 #include "global.h"
 #include "nalu.h"
 #include "memalloc.h"
 
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Allocates memory for a NALU
  *
  * \param buffersize
- *     size of NALU buffer 
+ *     size of NALU buffer
  *
  * \return
  *    pointer to a NALU
  *************************************************************************************
  */
- 
+
 
 NALU_t *AllocNALU(int buffersize)
 {
   NALU_t *n;
 
-  if ((n = (NALU_t*)calloc (1, sizeof (NALU_t))) == NULL) no_mem_exit ("AllocNALU: n");
+  if ((n = (NALU_t*)calloc (1, sizeof (NALU_t))) == NULL)
+    no_mem_exit ("AllocNALU: n");
 
   n->max_size=buffersize;
 
-  if ((n->buf = (byte*)calloc (buffersize, sizeof (byte))) == NULL) no_mem_exit ("AllocNALU: n->buf");
-  
+  if ((n->buf = (byte*)calloc (buffersize, sizeof (byte))) == NULL)
+  {
+    free (n);
+    no_mem_exit ("AllocNALU: n->buf");
+  }
+
   return n;
 }
 
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Frees a NALU
  *
- * \param n 
+ * \param n
  *    NALU to be freed
  *
  *************************************************************************************

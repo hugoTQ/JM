@@ -1,21 +1,3 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  ***************************************************************************
@@ -40,7 +22,6 @@
 #define _BIARIENCOD_H_
 
 
-
 /************************************************************************
  * D e f i n i t i o n s
  ***********************************************************************
@@ -48,20 +29,20 @@
 
 // some definitions to increase the readability of the source code
 
-#define Elow            (eep->Elow)
-#define Erange          (eep->Erange)
-#define Ebits_to_follow (eep->Ebits_to_follow)
-#define Ebuffer         (eep->Ebuffer)
-#define Ebits_to_go     (eep->Ebits_to_go)
-#define Ecodestrm       (eep->Ecodestrm)
-#define Ecodestrm_len   (eep->Ecodestrm_len)
+#define Elow                      (eep->Elow)
+#define Erange                    (eep->Erange)
+#define Ebits_to_follow           (eep->Ebits_to_follow)
+#define Ebuffer                   (eep->Ebuffer)
+#define Ebits_to_go               (eep->Ebits_to_go)
+#define Ecodestrm                 (eep->Ecodestrm)
+#define Ecodestrm_len             (eep->Ecodestrm_len)
 #define Ecodestrm_laststartcode   (eep->Ecodestrm_laststartcode)
-#define B_BITS     10 // Number of bits to represent the whole coding interval
-#define ONE                              (1 << B_BITS)
-#define HALF                     (1 << (B_BITS-1))
-#define QUARTER    (1 << (B_BITS-2))
+#define B_BITS                    10 // Number of bits to represent the whole coding interval
+#define ONE                       (1 << B_BITS)
+#define HALF                      (1 << (B_BITS-1))
+#define QUARTER                   (1 << (B_BITS-2))
 
-/* Range table for LPS */ 
+// Range table for LPS
 const byte rLPS_table_64x4[64][4]=
 {
         { 128, 176, 208, 240},
@@ -130,8 +111,7 @@ const byte rLPS_table_64x4[64][4]=
         {   2,   2,   2,   2}
 };
 
-
-const unsigned short AC_next_state_MPS_64[64] =    
+const unsigned short AC_next_state_MPS_64[64] =
 {
                 1,2,3,4,5,6,7,8,9,10,
                 11,12,13,14,15,16,17,18,19,20,
@@ -140,17 +120,17 @@ const unsigned short AC_next_state_MPS_64[64] =
                 41,42,43,44,45,46,47,48,49,50,
                 51,52,53,54,55,56,57,58,59,60,
                 61,62,62,63
-};      
+};
 
-const unsigned short AC_next_state_LPS_64[64] =    
+const unsigned short AC_next_state_LPS_64[64] =
 {
                  0, 0, 1, 2, 2, 4, 4, 5, 6, 7,
-                 8, 9, 9,11,11,12,13,13,15,15, 
+                 8, 9, 9,11,11,12,13,13,15,15,
                  16,16,18,18,19,19,21,21,22,22,
                  23,24,24,25,26,26,27,27,28,29,
                  29,30,30,30,31,32,32,33,33,33,
-                 34,34,35,35,35,36,36,36,37,37, 
-                 37,38,38,63 
+                 34,34,35,35,35,36,36,36,37,37,
+                 37,38,38,63
 };
 
 

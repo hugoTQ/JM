@@ -1,21 +1,3 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  *************************************************************************************
@@ -30,7 +12,6 @@
  *************************************************************************************
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -42,7 +23,7 @@ static FILE *f = NULL;    // the output file
 
 /*!
  ********************************************************************************************
- * \brief 
+ * \brief
  *    Writes a NALU to the Annex B Byte Stream
  *
  * \return
@@ -59,8 +40,7 @@ int WriteAnnexbNALU (NALU_t *n)
   assert (f != NULL);
   assert (n->startcodeprefix_len == 3 || n->startcodeprefix_len == 4);
 
-// printf ("WriteAnnexbNALU: writing %d bytes w/ startcode_len %d\n", n->len+1, n->startcodeprefix_len); 
-  //写起始码0x00000001到文件f中
+// printf ("WriteAnnexbNALU: writing %d bytes w/ startcode_len %d\n", n->len+1, n->startcodeprefix_len);
   if (n->startcodeprefix_len > 3)
   {
     putc (0, f);
@@ -71,13 +51,10 @@ int WriteAnnexbNALU (NALU_t *n)
   putc (1, f);
   BitsWritten += 24;
 
-  n->buf[0] =
-    n->forbidden_bit << 7      |
-    n->nal_reference_idc << 5  |
-    n->nal_unit_type;
+  n->buf[0] = (unsigned char) ((n->forbidden_bit << 7) | (n->nal_reference_idc << 5) | n->nal_unit_type);
 
-  // printf ("First Byte %x, nal_ref_idc %x, nal_unit_type %d\n", n->buf[0], n->nal_reference_idc, n->nal_unit_type);
-  //真正把码流写到文件的语句就是它了
+// printf ("First Byte %x, nal_ref_idc %x, nal_unit_type %d\n", n->buf[0], n->nal_reference_idc, n->nal_unit_type);
+
   if (n->len != fwrite (n->buf, 1, n->len, f))
   {
     printf ("Fatal: cannot write %d bytes to bitstream file, exit (-1)\n", n->len);
@@ -97,8 +74,8 @@ int WriteAnnexbNALU (NALU_t *n)
 
 /*!
  ********************************************************************************************
- * \brief 
- *    Opens the output file for the bytestream    
+ * \brief
+ *    Opens the output file for the bytestream
  *
  * \param Filename
  *    The filename of the file to be opened
@@ -120,14 +97,14 @@ void OpenAnnexbFile (char *Filename)
 
 /*!
  ********************************************************************************************
- * \brief 
+ * \brief
  *    Closes the output bit stream file
  *
  * \return
  *    none.  Funtion trerminates the program in case of an error
  ********************************************************************************************
 */
-void CloseAnnexbFile() {
+void CloseAnnexbFile(void) {
   if (fclose (f))
   {
     printf ("Fatal: cannot close Annex B bytestream file, exit (-1)\n");

@@ -7,7 +7,7 @@
  *    Headerfile containing some useful global definitions
  *
  * \author
- *    Detlev Marpe  
+ *    Detlev Marpe
  *    Copyright (C) 2000 HEINRICH HERTZ INSTITUTE All Rights Reserved.
  *
  * \date
@@ -19,15 +19,31 @@
 #define _DEFINES_H_
 
 #if defined _DEBUG
-#define TRACE           0                   //!< 0:Trace off 1:Trace on
+#define TRACE           0                   //!< 0:Trace off 1:Trace on 2:detailed CABAC context information
 #else
-#define TRACE           0                   //!< 0:Trace off 1:Trace on
+#define TRACE           0                   //!< 0:Trace off 1:Trace on 2:detailed CABAC context information
 #endif
 
+// Dump dbp for debug purposes
+#define DUMP_DPB        0
 //#define PAIR_FIELDS_IN_OUTPUT
 
 //#define MAX_NUM_SLICES 150
 #define MAX_NUM_SLICES 50
+
+//FREXT Profile IDC definitions
+#define FREXT_HP        100      //!< YUV 4:2:0/8 "High"
+#define FREXT_Hi10P     110      //!< YUV 4:2:0/10 "High 10"
+#define FREXT_Hi422     122      //!< YUV 4:2:2/10 "High 4:2:2"
+#define FREXT_Hi444     144      //!< YUV 4:4:4/12 "High 4:4:4"
+
+#define YUV400 0
+#define YUV420 1
+#define YUV422 2
+#define YUV444 3
+
+
+#define ZEROSNR 0
 
 // CAVLC
 #define LUMA              0
@@ -47,32 +63,30 @@
 #define LUMA_4x4        5
 #define CHROMA_DC       6
 #define CHROMA_AC       7
-#define NUM_BLOCK_TYPES 8
+#define CHROMA_DC_2x4   8
+#define CHROMA_DC_4x4   9
+#define NUM_BLOCK_TYPES 10
 
 
 #define MAX_CODED_FRAME_SIZE 8000000         //!< bytes for one frame
 
-// #define _LEAKYBUCKET_
-
-#define absm(A) ((A)<(0) ? (-(A)):(A))      //!< abs macro, faster than procedure
-
-#define Clip1(a)            ((a)>255?255:((a)<0?0:(a)))
-#define Clip3(min,max,val) (((val)<(min))?(min):(((val)>(max))?(max):(val)))
+//#define _LEAKYBUCKET_
 
 #define P8x8    8
 #define I4MB    9
 #define I16MB   10
 #define IBLOCK  11
 #define SI4MB   12
-#define MAXMODE 13
+#define I8MB    13
 #define IPCM    14
+#define MAXMODE 15
 
-#define IS_INTRA(MB)    ((MB)->mb_type==I4MB  || (MB)->mb_type==I16MB ||(MB)->mb_type==IPCM || (MB)->mb_type==SI4MB)
+#define IS_INTRA(MB)    ((MB)->mb_type==I4MB  || (MB)->mb_type==I16MB ||(MB)->mb_type==IPCM || (MB)->mb_type==I8MB || (MB)->mb_type==SI4MB)
 #define IS_NEWINTRA(MB) ((MB)->mb_type==I16MB  || (MB)->mb_type==IPCM)
-
 #define IS_OLDINTRA(MB) ((MB)->mb_type==I4MB)
-#define IS_INTER(MB)    ((MB)->mb_type!=I4MB  && (MB)->mb_type!=I16MB  && (MB)->mb_type!=IPCM)
-#define IS_INTERMV(MB)  ((MB)->mb_type!=I4MB  && (MB)->mb_type!=I16MB  && (MB)->mb_type!=0 && (MB)->mb_type!=IPCM)
+
+#define IS_INTER(MB)    ((MB)->mb_type!=I4MB  && (MB)->mb_type!=I16MB && (MB)->mb_type!=I8MB  && (MB)->mb_type!=IPCM)
+#define IS_INTERMV(MB)  ((MB)->mb_type!=I4MB  && (MB)->mb_type!=I16MB && (MB)->mb_type!=I8MB  && (MB)->mb_type!=0 && (MB)->mb_type!=IPCM)
 #define IS_DIRECT(MB)   ((MB)->mb_type==0     && (img->type==B_SLICE ))
 #define IS_COPY(MB)     ((MB)->mb_type==0     && (img->type==P_SLICE || img->type==SP_SLICE))
 #define IS_P8x8(MB)     ((MB)->mb_type==P8x8)
@@ -85,7 +99,8 @@
 
 #define BLOCK_SIZE      4
 #define MB_BLOCK_SIZE   16
-
+#define MB_BLOCK_PIXELS 256    // MB_BLOCK_SIZE * MB_BLOCK_SIZE
+#define BLOCK_MULTIPLE  4      // (MB_BLOCK_SIZE/BLOCK_SIZE)
 
 #define NO_INTRA_PMODE  9        //!< #intra prediction modes
 /* 4x4 intra prediction modes */
@@ -123,12 +138,6 @@
 
 #define INVALIDINDEX  (-135792468)
 
-#ifndef WIN32
-#define max(a, b)      ((a) > (b) ? (a) : (b))  //!< Macro returning max value
-#define min(a, b)      ((a) < (b) ? (a) : (b))  //!< Macro returning min value
-#endif
-
-
 #define MVPRED_MEDIAN   0
 #define MVPRED_L        1
 #define MVPRED_U        2
@@ -138,7 +147,6 @@
 #define DECODE_MB       1
 //#define DECODE_MB_BFRAME 2
 
-#define BLOCK_MULTIPLE      (MB_BLOCK_SIZE/BLOCK_SIZE)
 
 //Start code and Emulation Prevention need this to be defined in identical manner at encoder and decoder
 #define ZEROBYTES_SHORTSTARTCODE 2 //indicates the number of zero bytes in the short start-code prefix

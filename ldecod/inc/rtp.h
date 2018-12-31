@@ -15,19 +15,19 @@
 
 #define MAXRTPPAYLOADLEN  (65536 - 40)    //!< Maximum payload size of an RTP packet */
 #define MAXRTPPACKETSIZE  (65536 - 28)    //!< Maximum size of an RTP packet incl. header */
-#define H26LPAYLOADTYPE 105               //!< RTP paylaod type fixed here for simplicity*/
-#define H26LSSRC 0x12345678               //!< SSRC, chosen to simplify debugging */
+#define H264PAYLOADTYPE 105               //!< RTP paylaod type fixed here for simplicity*/
+#define H264SSRC 0x12345678               //!< SSRC, chosen to simplify debugging */
 #define RTP_TR_TIMESTAMP_MULT 1000        //!< should be something like 27 Mhz / 29.97 Hz */
 
-typedef struct 
+typedef struct
 {
   unsigned int v;          //!< Version, 2 bits, MUST be 0x2
   unsigned int p;          //!< Padding bit, Padding MUST NOT be used
   unsigned int x;          //!< Extension, MUST be zero
-  unsigned int cc;         /*!< CSRC count, normally 0 in the absence 
+  unsigned int cc;         /*!< CSRC count, normally 0 in the absence
                                 of RTP mixers */
   unsigned int m;          //!< Marker bit
-  unsigned int pt;         //!< 7 bits, Payload Type, dynamically established 
+  unsigned int pt;         //!< 7 bits, Payload Type, dynamically established
   unsigned int seq;        /*!< RTP sequence number, incremented by one for
                                 each sent packet */
   unsigned int old_seq;    //!< to detect wether packets were lost

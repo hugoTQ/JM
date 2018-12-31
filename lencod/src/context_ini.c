@@ -1,21 +1,3 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  *************************************************************************************
@@ -34,13 +16,9 @@
 #define CONTEXT_INI_C
 
 #include <stdlib.h>
-#include <assert.h>
 #include <math.h>
-#include <string.h>
 
-#include "defines.h"
 #include "global.h"
-
 
 #include "ctx_tables.h"
 #include "cabac.h"
@@ -85,20 +63,20 @@ void create_context_memory ()
 {
   int i, j, k;
   int num_mb    = img->FrameSizeInMbs; // number of macroblocks for frame
- 
+
   num_mb_per_slice  = (input->slice_mode==1 ? input->slice_argument : num_mb);
   number_of_slices  = (num_mb + num_mb_per_slice - 1) / num_mb_per_slice;
 
-  if ((initialized  = (int***) malloc (2 * sizeof(int**))) == NULL)
+  if ((initialized  = (int***) malloc (3 * sizeof(int**))) == NULL)
   {
     no_mem_exit ("create_context_memory: initialized");
   }
-  if ((model_number = (int***) malloc (2 * sizeof(int**))) == NULL)
+  if ((model_number = (int***) malloc (3 * sizeof(int**))) == NULL)
   {
     no_mem_exit ("create_context_memory: model_number");
   }
 
-  for (k=0; k<2; k++)
+  for (k=0; k<3; k++)
   {
     if ((initialized[k] = (int**) malloc (FRAME_TYPES * sizeof(int*))) == NULL)
     {
@@ -123,7 +101,7 @@ void create_context_memory ()
   }
 
   //===== set all context sets as "uninitialized" =====
-  for (k=0; k<2; k++)
+  for (k=0; k<3; k++)
   {
     for (i=0; i<FRAME_TYPES; i++)
     {
@@ -150,7 +128,7 @@ void free_context_memory ()
 {
   int i, k;
 
-  for (k=0; k<2; k++)
+  for (k=0; k<3; k++)
   {
     for (i=0; i<FRAME_TYPES; i++)
     {
@@ -235,12 +213,13 @@ void init_contexts ()
   BIARI_CTX_INIT2 (2, NUM_REF_NO_CTX,    mc->ref_no_contexts,      INIT_REF_NO,     img->model_number);
   BIARI_CTX_INIT1 (   NUM_DELTA_QP_CTX,  mc->delta_qp_contexts,    INIT_DELTA_QP,   img->model_number);
   BIARI_CTX_INIT1 (   NUM_MB_AFF_CTX,    mc->mb_aff_contexts,      INIT_MB_AFF,     img->model_number);
+  BIARI_CTX_INIT1 (   NUM_TRANSFORM_SIZE_CTX,  mc->transform_size_contexts,    INIT_TRANSFORM_SIZE,   img->model_number);
 
   //--- texture coding contexts ---
   BIARI_CTX_INIT1 (                 NUM_IPR_CTX,  tc->ipr_contexts,     INIT_IPR,       img->model_number);
   BIARI_CTX_INIT1 (                 NUM_CIPR_CTX, tc->cipr_contexts,    INIT_CIPR,      img->model_number);
   BIARI_CTX_INIT2 (3,               NUM_CBP_CTX,  tc->cbp_contexts,     INIT_CBP,       img->model_number);
-  BIARI_CTX_INIT2 (NUM_BLOCK_TYPES, NUM_BCBP_CTX, tc->bcbp_contexts,    INIT_BCBP,      img->model_number);
+  BIARI_CTX_INIT2 (8,               NUM_BCBP_CTX, tc->bcbp_contexts,    INIT_BCBP,      img->model_number);
   BIARI_CTX_INIT2 (NUM_BLOCK_TYPES, NUM_MAP_CTX,  tc->map_contexts,     INIT_MAP,       img->model_number);
   BIARI_CTX_INIT2 (NUM_BLOCK_TYPES, NUM_LAST_CTX, tc->last_contexts,    INIT_LAST,      img->model_number);
   BIARI_CTX_INIT2 (NUM_BLOCK_TYPES, NUM_ONE_CTX,  tc->one_contexts,     INIT_ONE,       img->model_number);
@@ -257,12 +236,12 @@ double XRate (BiContextTypePtr ctx, const int* model)
 {
   int     ctx_state, mod_state;
   double  weight, xr = 0.0;
-  int     qp = img->qp;
+  int     qp = imax(0,img->qp);
 
-  weight    = min (1.0, (double)ctx->count/(double)RELIABLE_COUNT);
+  weight    = dmin (1.0, (double)ctx->count/(double)RELIABLE_COUNT);
 
   mod_state = ((model[0]*qp)>>4)+model[1];
-  mod_state = min (max (0, mod_state), 127);
+  mod_state = iClip3(0, 127, mod_state);
   ctx_state = (ctx->MPS ? 64+ctx->state : 63-ctx->state);
 
   xr -= weight * probability[    ctx_state] * entropy[    mod_state];
@@ -306,6 +285,8 @@ void GetCtxModelNumber (int* mnumber, MotionInfoContexts* mc, TextureInfoContext
     ADD_XRATE2 (2, NUM_REF_NO_CTX,    mc->ref_no_contexts,      INIT_REF_NO,    model);
     ADD_XRATE1 (   NUM_DELTA_QP_CTX,  mc->delta_qp_contexts,    INIT_DELTA_QP,  model);
     ADD_XRATE1 (   NUM_MB_AFF_CTX,    mc->mb_aff_contexts,      INIT_MB_AFF,    model);
+    ADD_XRATE1 (   NUM_TRANSFORM_SIZE_CTX,  mc->transform_size_contexts, INIT_TRANSFORM_SIZE,  model);
+
     //--- texture coding contexts ---
     ADD_XRATE1 (                  NUM_IPR_CTX,  tc->ipr_contexts,       INIT_IPR,       model);
     ADD_XRATE1 (                  NUM_CIPR_CTX, tc->cipr_contexts,      INIT_CIPR,      model);

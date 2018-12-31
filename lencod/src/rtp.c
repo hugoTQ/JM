@@ -1,21 +1,3 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  *****************************************************************************
@@ -33,24 +15,19 @@
  *    Stephan Wenger   stewe@cs.tu-berlin.de
  *****************************************************************************/
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <assert.h>
 #include <memory.h>
-#include <malloc.h>
-
-#include "rtp.h"
-#include "elements.h"
-#include "defines.h"
-#include "header.h"
 
 #include "global.h"
-#include "fmo.h"
-#include "parsetcommon.h"
-#include "parset.h"
-#include "nalucommon.h"
 
+#include "rtp.h"
+
+#ifdef WIN32
+#include <Winsock2.h>
+#else
+#include <netinet/in.h>
+#endif
 
 // A little trick to avoid those horrible #if TRACE all over the source code
 #if TRACE
@@ -69,7 +46,7 @@ FILE *f;
 /*!
  *****************************************************************************
  *
- * \brief 
+ * \brief
  *    ComposeRTPpacket composes the complete RTP packet using the various
  *    structure members of the RTPpacket_t structure
  *
@@ -99,6 +76,9 @@ FILE *f;
 int ComposeRTPPacket (RTPpacket_t *p)
 
 {
+  unsigned int temp32;
+  unsigned short temp16;
+
   // Consistency checks through assert, only used for debug purposes
   assert (p->v == 2);
   assert (p->p == 0);
@@ -113,19 +93,28 @@ int ComposeRTPPacket (RTPpacket_t *p)
 
   // Compose RTP header, little endian
 
-  p->packet[0] = (   (p->v)
-                  |  (p->p << 2)
-                  |  (p->x << 3)
-                  |  (p->cc << 4) );
-  p->packet[1] = (   (p->m)
-                  |  (p->pt << 1) );
-  p->packet[2] = p->seq & 0xff;
-  p->packet[3] = (p->seq >> 8) & 0xff;
+  p->packet[0] = (byte)
+    ( ((p->v  & 0x03) << 6)
+    | ((p->p  & 0x01) << 5)
+    | ((p->x  & 0x01) << 4)
+    | ((p->cc & 0x0F) << 0) );
 
-  memcpy (&p->packet[4], &p->timestamp, 4);  // change to shifts for unified byte sex
-  memcpy (&p->packet[8], &p->ssrc, 4);// change to shifts for unified byte sex
+  p->packet[1] = (byte)
+    ( ((p->m  & 0x01) << 7)
+    | ((p->pt & 0x7F) << 0) );
 
-  // Copy payload 
+  // sequence number, msb first
+  temp16 = htons((unsigned short)p->seq);
+  memcpy (&p->packet[2], &temp16, 2);  // change to shifts for unified byte sex
+
+  //declare a temporary variable to perform network byte order converson
+  temp32 = htonl(p->timestamp);
+  memcpy (&p->packet[4], &temp32, 4);  // change to shifts for unified byte sex
+
+  temp32 = htonl(p->ssrc);
+  memcpy (&p->packet[8], &temp32, 4);// change to shifts for unified byte sex
+
+  // Copy payload
 
   memcpy (&p->packet[12], p->payload, p->paylen);
   p->packlen = p->paylen+12;
@@ -137,7 +126,7 @@ int ComposeRTPPacket (RTPpacket_t *p)
 /*!
  *****************************************************************************
  *
- * \brief 
+ * \brief
  *    WriteRTPPacket writes the supplied RTP packet to the output file
  *
  * \return
@@ -181,7 +170,7 @@ int WriteRTPPacket (RTPpacket_t *p, FILE *f)
 /*!
  *****************************************************************************
  *
- * \brief 
+ * \brief
  *    int RTPWriteNALU write a NALU to the RTP file
  *
  * \return
@@ -189,16 +178,15 @@ int WriteRTPPacket (RTPpacket_t *p, FILE *f)
  *
  * \par Side effects
  *    Packet written, RTPSequenceNumber and RTPTimestamp updated
- *   
+ *
  * \date
  *    December 13, 2002
  *
  * \author
  *    Stephan Wenger   stewe@cs.tu-berlin.de
  *****************************************************************************/
-/*
-  码流按RTP格式写入文件
-*/
+
+
 int WriteRTPNALU (NALU_t *n)
 {
   RTPpacket_t *p;
@@ -207,10 +195,10 @@ int WriteRTPNALU (NALU_t *n)
   assert (n != NULL);
   assert (n->len < 65000);
 
-  n->buf[0] =
-    n->forbidden_bit << 7      |
-    n->nal_reference_idc << 5  |
-    n->nal_unit_type;
+  n->buf[0] = (byte)
+    (n->forbidden_bit << 7      |
+     n->nal_reference_idc << 5  |
+     n->nal_unit_type );
 
   // Set RTP structure elements and alloca() memory foor the buffers
   if ((p = (RTPpacket_t *) malloc (sizeof (RTPpacket_t))) == NULL)
@@ -230,14 +218,12 @@ int WriteRTPNALU (NALU_t *n)
                                           //! For error resilience work, we need the correct
                                           //! marker bit.  Introduce a nalu->marker and set it in
                                           //! terminate_slice()?
-  p->pt=H26LPAYLOADTYPE;
+  p->pt=H264PAYLOADTYPE;
   p->seq=CurrentRTPSequenceNumber++;
   p->timestamp=CurrentRTPTimestamp;
-  p->ssrc=H26LSSRC;
+  p->ssrc=H264SSRC;
   p->paylen = n->len;
   memcpy (p->payload, n->buf, n->len);
-
-
 
   // Generate complete RTP packet
   if (ComposeRTPPacket (p) < 0)
@@ -259,14 +245,14 @@ int WriteRTPNALU (NALU_t *n)
 
 /*!
  ********************************************************************************************
- * \brief 
+ * \brief
  *    RTPUpdateTimestamp: patches the RTP timestamp depending on the TR
  *
- * \param 
+ * \param
  *    tr: TRof the following NALUs
  *
  * \return
- *    none.  
+ *    none.
  *
  ********************************************************************************************
 */
@@ -287,7 +273,7 @@ void RTPUpdateTimestamp (int tr)
 
   /*! The following code assumes a wrap around of TR at 256, and
       needs to be changed as soon as this is no more true.
-      
+
       The support for B frames is a bit tricky, because it is not easy to distinguish
       between a natural wrap-around of the tr, and the intentional going back of the
       tr because of a B frame.  It is solved here by a heuristic means: It is assumed that
@@ -307,7 +293,7 @@ void RTPUpdateTimestamp (int tr)
 
 /*!
  ********************************************************************************************
- * \brief 
+ * \brief
  *    Opens the output file for the RTP packet stream
  *
  * \param Filename
@@ -331,7 +317,7 @@ void OpenRTPFile (char *Filename)
 
 /*!
  ********************************************************************************************
- * \brief 
+ * \brief
  *    Closes the output file for the RTP packet stream
  *
  * \return
@@ -356,8 +342,8 @@ void CloseRTPFile ()
 /*!
  *****************************************************************************
  *
- * \brief 
- *    int aggregationRTPWriteBits (int marker) write the Slice header for the RTP NAL      
+ * \brief
+ *    int aggregationRTPWriteBits (int marker) write the Slice header for the RTP NAL
  *
  * \return
  *    Number of bytes written to output file
@@ -367,7 +353,7 @@ void CloseRTPFile ()
  *
  * \par Side effects
  *    Packet written, RTPSequenceNumber and RTPTimestamp updated
- *   
+ *
  * \date
  *    September 10, 2002
  *
@@ -375,7 +361,7 @@ void CloseRTPFile ()
  *    Dong Tian   tian@cs.tut.fi
  *****************************************************************************/
 
-int aggregationRTPWriteBits (int Marker, int PacketType, int subPacketType, void * bitstream, 
+int aggregationRTPWriteBits (int Marker, int PacketType, int subPacketType, void * bitstream,
                     int BitStreamLenInByte, FILE *out)
 {
   RTPpacket_t *p;
@@ -396,10 +382,10 @@ int aggregationRTPWriteBits (int Marker, int PacketType, int subPacketType, void
   p->x=0;
   p->cc=0;
   p->m=Marker&1;
-  p->pt=H26LPAYLOADTYPE;
+  p->pt=H264PAYLOADTYPE;
   p->seq=CurrentRTPSequenceNumber++;
   p->timestamp=CurrentRTPTimestamp;
-  p->ssrc=H26LSSRC;
+  p->ssrc=H264SSRC;
 
   offset = 0;
   p->payload[offset++] = PacketType; // This is the first byte of the compound packet
@@ -448,14 +434,14 @@ int aggregationRTPWriteBits (int Marker, int PacketType, int subPacketType, void
 /*!
  *****************************************************************************
  * \isAggregationPacket
- * \brief 
+ * \brief
  *    Determine if current packet is normal packet or compound packet (aggregation
  *    packet)
  *
  * \return
  *    return TRUE, if it is compound packet.
  *    return FALSE, otherwise.
- *   
+ *
  * \date
  *    September 10, 2002
  *
@@ -476,9 +462,9 @@ Boolean isAggregationPacket()
 /*!
  *****************************************************************************
  * \PrepareAggregationSEIMessage
- * \brief 
+ * \brief
  *    Prepare the aggregation sei message.
- *    
+ *
  * \date
  *    September 10, 2002
  *
@@ -572,9 +558,9 @@ void PrepareAggregationSEIMessage()
 /*!
  *****************************************************************************
  * \begin_sub_sequence_rtp
- * \brief 
+ * \brief
  *    do some initialization for sub-sequence under rtp
- *    
+ *
  * \date
  *    September 10, 2002
  *
@@ -584,7 +570,7 @@ void PrepareAggregationSEIMessage()
 
 void begin_sub_sequence_rtp()
 {
-  if ( input->of_mode != PAR_OF_RTP || input->NumFramesInELSubSeq == 0 ) 
+  if ( input->of_mode != PAR_OF_RTP || input->NumFramesInELSubSeq == 0 )
     return;
 
   // begin to encode the base layer subseq
@@ -609,9 +595,9 @@ void begin_sub_sequence_rtp()
 /*!
  *****************************************************************************
  * \end_sub_sequence_rtp
- * \brief 
+ * \brief
  *    do nothing
- *    
+ *
  * \date
  *    September 10, 2002
  *

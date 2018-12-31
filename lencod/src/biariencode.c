@@ -1,21 +1,3 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  *************************************************************************************
@@ -23,17 +5,21 @@
  *
  * \brief
  *    Routines for binary arithmetic encoding
+ *
  * \author
  *    Main contributors (see contributors.h for copyright, address and affiliation details)
  *    - Detlev Marpe                    <marpe@hhi.de>
  *    - Gabi Blaettermann               <blaetter@hhi.de>
  *************************************************************************************
  */
+
 #include <stdlib.h>
-#include <math.h>
+#include <stdio.h>
+
 #include "global.h"
 #include "biariencode.h"
-#include <assert.h>
+
+int binCount = 0;
 
 /*!
  ************************************************************************
@@ -48,7 +34,7 @@
                        eep->C-=8; \
                        eep->E++; \
                      } \
-                    } 
+                    }
 
 #define put_one_bit(b) { \
                          Ebuffer <<= 1; Ebuffer |= (b); \
@@ -65,6 +51,19 @@
                                           } \
                                          }
 
+int pic_bin_count;
+
+void reset_pic_bin_count(void)
+{
+  pic_bin_count = 0;
+}
+
+int get_pic_bin_count(void)
+{
+  return pic_bin_count;
+}
+
+
 
 /*!
  ************************************************************************
@@ -72,7 +71,7 @@
  *    Allocates memory for the EncodingEnvironment struct
  ************************************************************************
  */
-EncodingEnvironmentPtr arienco_create_encoding_environment()
+EncodingEnvironmentPtr arienco_create_encoding_environment(void)
 {
   EncodingEnvironmentPtr eep;
 
@@ -111,7 +110,7 @@ void arienco_delete_encoding_environment(EncodingEnvironmentPtr eep)
  */
 void arienco_start_encoding(EncodingEnvironmentPtr eep,
                             unsigned char *code_buffer,
-                            int *code_len, /* int *last_startcode, */ int slice_type )
+                            int *code_len )
 {
   Elow = 0;
   Ebits_to_follow = 0;
@@ -120,12 +119,10 @@ void arienco_start_encoding(EncodingEnvironmentPtr eep,
 
   Ecodestrm = code_buffer;
   Ecodestrm_len = code_len;
-//  Ecodestrm_laststartcode = last_startcode;
 
   Erange = HALF-2;
 
   eep->C = 0;
-  eep->B = *code_len;
   eep->E = 0;
 
 }
@@ -138,7 +135,7 @@ void arienco_start_encoding(EncodingEnvironmentPtr eep,
  */
 int arienco_bits_written(EncodingEnvironmentPtr eep)
 {
-   return (8 * (*Ecodestrm_len /*-*Ecodestrm_laststartcode*/) + Ebits_to_follow + 8  - Ebits_to_go);
+   return (8 * (*Ecodestrm_len) + Ebits_to_follow + 8  - Ebits_to_go);
 }
 
 
@@ -150,22 +147,19 @@ int arienco_bits_written(EncodingEnvironmentPtr eep)
  */
 void arienco_done_encoding(EncodingEnvironmentPtr eep)
 {
-  put_one_bit_plus_outstanding((Elow >> (B_BITS-1)) & 1);
-  put_one_bit((Elow >> (B_BITS-2))&1);
-  put_one_bit(1);
+  put_one_bit_plus_outstanding((unsigned char) ((Elow >> (B_BITS-1)) & 1));
+  put_one_bit((unsigned char) (Elow >> (B_BITS-2))&1);
+  put_one_bit((unsigned char) 1);
 
-  stat->bit_use_stuffingBits[img->type]+=(8-Ebits_to_go);
+  stats->bit_use_stuffingBits[img->type]+=(8-Ebits_to_go);
 
   while (Ebits_to_go != 8)
     put_one_bit(0);
 
-  eep->E= eep->E*8 + eep->C; // no of processed bins
-  eep->B= (*Ecodestrm_len - eep->B); // no of written bytes
-  eep->E -= (img->current_mb_nr-img->currentSlice->start_mb_nr);
-  eep->E = (eep->E + 31)>>5;
-  // eep->E now contains the minimum number of bytes for the NAL unit
+  pic_bin_count += eep->E*8 + eep->C; // no of processed bins
 }
 
+extern int cabac_encoding;
 
 /*!
  ************************************************************************
@@ -180,35 +174,32 @@ void biari_encode_symbol(EncodingEnvironmentPtr eep, signed short symbol, BiCont
   register unsigned int low = Elow;
   unsigned int rLPS = rLPS_table_64x4[bi_ct->state][(range>>6) & 3];
 
-  extern int cabac_encoding;
+#if (2==TRACE)
+  if (cabac_encoding)
+    fprintf(p_trace, "%d  0x%04x  %d  %d\n", binCount++, Erange , bi_ct->state, bi_ct->MPS );
+#endif
 
-  if( cabac_encoding )
-  {
-    bi_ct->count++;
-  }
-
-  /* covers all cases where code does not bother to shift down symbol to be 
-   * either 0 or 1, e.g. in some cases for cbp, mb_Type etc the code symply 
-   * masks off the bit position and passes in the resulting value */
-
-  if (symbol != 0) 
-    symbol = 1;
-  
   range -= rLPS;
-  if (symbol != bi_ct->MPS) 
+  bi_ct->count += cabac_encoding;
+
+  /* covers all cases where code does not bother to shift down symbol to be
+   * either 0 or 1, e.g. in some cases for cbp, mb_Type etc the code simply
+   * masks off the bit position and passes in the resulting value */
+  symbol = (short) (symbol != 0);
+
+  if (symbol != bi_ct->MPS)
   {
     low += range;
     range = rLPS;
-    
-    if (!bi_ct->state)
-      bi_ct->MPS = bi_ct->MPS ^ 1;               // switch LPS if necessary
-    bi_ct->state = AC_next_state_LPS_64[bi_ct->state]; // next state
-  } 
-  else 
-    bi_ct->state = AC_next_state_MPS_64[bi_ct->state]; // next state
- 
 
-  /* renormalisation */    
+    if (!bi_ct->state)
+      bi_ct->MPS = (unsigned char) (bi_ct->MPS ^ 0x01);               // switch LPS if necessary
+    bi_ct->state = AC_next_state_LPS_64[bi_ct->state]; // next state
+  }
+  else
+    bi_ct->state = AC_next_state_MPS_64[bi_ct->state]; // next state
+
+  /* renormalisation */
   while (range < QUARTER)
   {
     if (low >= HALF)
@@ -216,50 +207,51 @@ void biari_encode_symbol(EncodingEnvironmentPtr eep, signed short symbol, BiCont
       put_one_bit_plus_outstanding(1);
       low -= HALF;
     }
-    else 
-      if (low < QUARTER)
-      {
-        put_one_bit_plus_outstanding(0);
-      }
-      else
-      {
-        Ebits_to_follow++;
-        low -= QUARTER;
-      }
+    else if (low < QUARTER)
+    {
+      put_one_bit_plus_outstanding(0);
+    }
+    else
+    {
+      Ebits_to_follow++;
+      low -= QUARTER;
+    }
     low <<= 1;
     range <<= 1;
   }
   Erange = range;
   Elow = low;
   eep->C++;
-
 }
-
-
-
 
 /*!
  ************************************************************************
  * \brief
- *    Arithmetic encoding of one binary symbol assuming 
+ *    Arithmetic encoding of one binary symbol assuming
  *    a fixed prob. distribution with p(symbol) = 0.5
  ************************************************************************
  */
 void biari_encode_symbol_eq_prob(EncodingEnvironmentPtr eep, signed short symbol)
 {
   register unsigned int low = (Elow<<1);
-  
+
+#if (2==TRACE)
+  extern int cabac_encoding;
+  if (cabac_encoding)
+    fprintf(p_trace, "%d  0x%04x\n", binCount++, Erange );
+#endif
+
   if (symbol != 0)
     low += Erange;
 
-  /* renormalisation as for biari_encode_symbol; 
-     note that low has already been doubled */ 
+  /* renormalisation as for biari_encode_symbol;
+     note that low has already been doubled */
   if (low >= ONE)
   {
     put_one_bit_plus_outstanding(1);
     low -= ONE;
   }
-  else 
+  else
     if (low < HALF)
     {
       put_one_bit_plus_outstanding(0);
@@ -271,7 +263,6 @@ void biari_encode_symbol_eq_prob(EncodingEnvironmentPtr eep, signed short symbol
     }
     Elow = low;
     eep->C++;
-    
 }
 
 /*!
@@ -284,12 +275,18 @@ void biari_encode_symbol_final(EncodingEnvironmentPtr eep, signed short symbol)
 {
   register unsigned int range = Erange-2;
   register unsigned int low = Elow;
-  
+
+#if (2==TRACE)
+  extern int cabac_encoding;
+  if (cabac_encoding)
+    fprintf(p_trace, "%d  0x%04x\n", binCount++, Erange);
+#endif
+
   if (symbol) {
     low += range;
     range = 2;
   }
-  
+
   while (range < QUARTER)
   {
     if (low >= HALF)
@@ -297,7 +294,7 @@ void biari_encode_symbol_final(EncodingEnvironmentPtr eep, signed short symbol)
       put_one_bit_plus_outstanding(1);
       low -= HALF;
     }
-    else 
+    else
       if (low < QUARTER)
       {
         put_one_bit_plus_outstanding(0);
@@ -316,7 +313,6 @@ void biari_encode_symbol_final(EncodingEnvironmentPtr eep, signed short symbol)
 }
 
 
-
 /*!
  ************************************************************************
  * \brief
@@ -325,22 +321,19 @@ void biari_encode_symbol_final(EncodingEnvironmentPtr eep, signed short symbol)
  */
 void biari_init_context (BiContextTypePtr ctx, const int* ini)
 {
-  int pstate;
-
-  pstate = ((ini[0]*img->qp)>>4) + ini[1];
-  pstate = min (max ( 1, pstate), 126);
+  int pstate = iClip3 ( 1, 126, ((ini[0]* imax(0, img->currentSlice->qp)) >> 4) + ini[1]);
 
   if ( pstate >= 64 )
   {
-    ctx->state  = pstate - 64;
+    ctx->state  = (unsigned short) (pstate - 64);
     ctx->MPS    = 1;
   }
   else
   {
-    ctx->state  = 63 - pstate;
+    ctx->state  = (unsigned short) (63 - pstate);
     ctx->MPS    = 0;
   }
-  
+
   ctx->count = 0;
 }
 

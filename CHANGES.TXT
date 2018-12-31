@@ -1,3 +1,291 @@
+Changes in Version JM 12.1 (since JM 12.0)
+------------------------------------------
+- encoder: fix example configuration files (KS/AT)
+- encoder: make direct_8x8_inference_flag=1 default (KS)
+- decoder: fix compilation with trace enabled (KS)
+- encoder/decoder: fix for shift_right_round functions on 64-bit machines (AT)
+- encoder/decoder: predict_nnz functions (YDh)
+- encoder/decoder: cleanups (KS/AT)
+
+
+Changes in Version JM 12.0 (since JM 11.0)
+------------------------------------------
+
+- encoder: Context Adaptive Lagrange Multiplier [JVT-T046] (JZ)
+- encoder: Severe Rate Control reorganization and debugging. Support for interlace coding modes and hierarchical/multi-pass encoding (AL/AT)
+- encoder: Lagrangian Cleanups based on "layered" motion estimation (YD/AT)
+- encoder: reorganization/unification of motion estimation and compensation functions (AL/AT)
+- encoder: Revised Luma/Chroma interpolation  (AL/AT)
+- encoder: Chroma motion estimation consideration (AL/AT)
+- encoder: Separation of intra chroma mode decision and RDO (AL/AT)
+- encoder: split up macroblock mode decision (AT)
+- encoder: Bug correction relating to 64bit type statistics output (AT)
+- encoder: Simple "text" SEI message generation and basic support for VUI parameters (to be extended) (AT)
+- encoder: reorganization of adaptive quantization and support of 4:2:2 and 4:4:4 formats (AT)
+- encoder: resolved 8x8 intra prediction + MB-AFF bug  (AT)
+- encoder: resolved illegal WP value vs Eq.8-294 bug  (AT)
+- encoder: subpel EPZS bug resolutions and addition of bipredictive subpel EPZS  (AT)
+- encoder: resolve bug with IDR pictures + RDPictureDecision (AT)
+- encoder: fix SP/SI memory leaks  (AT)
+- encoder: bidirectional search for simplified fast ME (BY)
+- encoder: fix start code prefix length (SN)
+- decoder: update of decoder input parameters (AT)
+- encoder: fix incorrect usage of 8x8 transform with direct mode and non-rd-opt coding (DH)
+- encoder: fix wrong pointer dereferences (KS/SH)
+- encoder: fix SP/SI file i/o issue (ES)
+- encoder: allocate less stream buffer memory for slice modes 1 and 2 (KS)
+- encoder: fix bit statistics for slice mode 2 (enricomasala)
+- decoder: trace file format cleanup (KS)
+- decoder: fix psnr calculation for field with IDR (SN)
+- decoder: error concealment - conceal intra blocks from decoded blocks first (KS)
+- decoder: decoder cleanups and optimizations (AT/KS)
+- encoder/decoder: various small code cleanups (AT)
+- encoder/decoder: correction of fix for predict_nnz with constrained intra and data partitioning (CK/KS)
+- encoder/decoder: fix memory leaks mostly in error paths (KS)
+- encoder/decoder: add MS Visual Studio 2005 project files (KS)
+
+
+Changes in Version JM 11.0 (since JM 10.2)
+------------------------------------------
+- encoder: FME updated [JVT-R085 and JVT-Q088] (XX)
+- encoder: I_PCM support for CABAC (SL)
+- encoder: fix crash with large number of frames (AT)
+- encoder: disable writing if no yuv output file is specified (AT)
+- encoder: disallow POC reorder with field coding (AT)
+- encoder: rename Pyramid->Hierarchy (AT/KS)
+- encoder: remove remainings of former redundant slice implementation (KS)
+- encoder: fix IPCM encoding with rate control (AT/HZ)
+- encoder: Intra 8x8 prediction mode write cleanup (KS)
+- encoder: Avoid I_PCM trace data during rdopt (KS)
+- encoder: LA-RDO bug fix (CZ)
+- encoder: disallow DP+CABAC (KS)
+- encoder: SP pictures cannot be IDR (KS)
+- encoder: fix overwritten line buffer in fast ME (KS)
+- encoder: allow picture frame/field encoding of non-reference pictures when DPB is full of reference pictures (AT)
+- encoder: enable EPZSSubPelME (AT)
+- decoder: start decoding after recovery point SEI (BL) [JVT-R017]
+- decoder: remove size restriction when parsing reserved SEI (KS/MW)
+- decoder: fix weighted prediction initializations (AT)
+- decoder: fix Motion-constrained slice group set SEI message reading (AT)
+- decoder: fix dec_picture->slice_id memory leak (KS)
+- decoder: fix SEI MMCO list free (RB)
+- decoder: make vlc tables static const (SF)
+- decoder: fix for poc_order_cnt_type=2 (JXi)
+- decoder: fix field combine/split for different reference picture size per slice (KS/AT)
+- encoder/decoder: Redundant picture for error resilience [JVT-R058] (CZ)
+- encoder/decoder: don't write empty DP NALUs and handle this at the decoder (KS)
+- encoder/decoder: fix predict_nnz for constrained intra and data partitioning (SMy/KS)
+- encoder/decoder: fix cabac context initilization (DM)
+- encoder/decoder: fix various chroma bitdepth related issues (KS/YC)
+
+
+
+Changes in Version JM 10.2 (since JM 10.1)
+------------------------------------------
+- encoder: fast subpixel motion estimation for EPZS [JVT-Q079] (AT)
+- encoder: SI picture implementation (ES)
+- encoder: lossless coding fixes (SSu)
+- encoder: add warning for bit/mb limit (AT)
+- encoder: enable I_PCM (for VLC coding) by default (KS)
+- encoder: fix non-rd-optimized mode decision (AT)
+- encoder: fix memory allocation in search module (TP)
+- encoder: fix bitrate output (PP)
+- encoder: fix data partitioning with constrained intra prediction (KS)
+- encoder: fix bidirectional prediction with RDOpt=2 (AT)
+- encoder: fix MBAFF with constrained intra prediction (KS)
+- encoder: fix MBAFF with slice mode 2 and restrict slice mode 1 (KS)
+- decoder: SI/SP picture updates (ES)
+- decoder: add check for QP range (MT)
+- decoder: fix/add SEI parsing: pan/scan, timing, stereo, deblocking filter, film grain (MT)
+- decoder: fix dummy croma component output for bit depth > 8 (KS)
+- decoder: work around problems in error concealment (KS)
+- decoder: fix idr psnr output (SB)
+- encoder/decoder: update RTP format (SW)
+
+
+Changes in Version JM 10.1 (since JM 10.0)
+------------------------------------------
+- encoder/decoder: apply chroma motion vector adjustment only for 4:2:0 (SZ/KS)
+- encoder: write vlc run if last mb is skipped ()
+
+
+Changes in Version JM 10.0 (since JM 9.8)
+-----------------------------------------
+- encoder: simplified UMHexagonS fast motion estimation [JVT-P021] (XY)
+- encoder: EPZS fast motion estimation [JVT-P026] (AT)
+- encoder: fix reference picture reordering problem (AT)
+- encoder: disallow (log2_max_frame_num_minus4 == 0 && input->num_ref_frames == 16) (AT)
+- decoder: error concealment for lost pictures [JVT-P072] (SB)
+- decoder: fix long-term reference picture reordering problem (KS)
+- decoder: allow differing nal_ref_idc (!=0) in same AU (JSa)
+- fix example config files (KS)
+
+
+Changes for Version JM 9.8 to JM 9.7
+------------------------------------
+- encoder/decoder: fix monochrome pred_weight_table syntax (MT)
+- encoder/decoder: fix cropping_flag usage (KS)
+- encoder: fix frame_num for reference B pictures (AT)
+
+
+Changes for Version JM 9.7 to JM 9.6
+------------------------------------
+- encoder: revert zero motion vector change in low complexity mode (YH)
+- encoder: fix 4:2:2 encoding (KS)
+- encoder: fix mb_qp_delta CABAC context selection (KS)
+- encoder: weighted prediction fix
+- encoder: fix frame_poc setting (AS)
+- decoder: fix direct mode rare case problem (AS)
+- decoder: fix pic_struct parsing in timing SEI
+- decoder: fix parsing of filler data SEI
+- encoder/decoder: fix deblocking filter strength calculation for negative POC (AS/KS)
+- encoder/decoder: fix frame_poc setting (AS)
+- encoder/decoder: fix SE_TRANSFORM_SIZE usage (KS)
+- encoder: updates to explicit hierarchical coding  and picture coding structures (AT)
+- encoder: update/enhance control of log2_max_pic_order_cnt_lsb_minus4 and log2_max_frame_num_minus4 (AT)
+- encoder: addition of computation of Sequence Level PSNR statistics (AT)
+- encoder: fix frame_num setting for pyramid coding (AT)
+- encoder/decoder: fix invalid line in deblocking filter (PL)
+
+
+Changes for Version JM 9.6 to JM 9.5
+------------------------------------
+- encoder: FME fixes (WF)
+- encoder: fixes for I_PCM and encoder output (SN)
+- encoder: fix rounding for CABAC stuffing
+- encoder: lossless mode fixes (WK)
+- encoder: increase maximum slice size (WK/KS)
+- add platform specific notes to readme.txt
+
+
+Changes for Version JM 9.5 to JM 9.4
+------------------------------------
+- encoder: open GOP support (AT)
+- encoder: I_PCM encoding/decoding for CAVLC (AT)
+- encoder: I_PCM decoding for non-4:2:0 and CAVLC >8bit (AT)
+- encoder: fix encoder/decoder mismatch for non-rd-opt coding (AT)
+- encoder: fix crash with bi-predictive search (AT)
+- encoder: further speed optimization (AT)
+- encoder: fix mismatch in low complexity mode (YH/AT)
+- encoder: fix zero motion vector in low complexity mode (YH)
+- encoder: fix 8:9:9 bit support (WK)
+- encoder: FME improvements (WF)
+- encoder/decoder: fix RCT Cb/Cr order (WK)
+
+
+Changes for Version JM 9.4 to JM 9.3
+------------------------------------
+- encoder: fast mode implementation (BJ)
+- encoder: FME update (WF)
+- encoder: adaptive quantization rounding offset (GS/SSu/AT)
+- encoder: restructure encode_one_macroblock (AT)
+- encoder: weighted prediction fix (AT)
+- encoder: fix reported bit rate with LastFrameNumber parameter (AT)
+- encoder: fix cost initialization for Transform8x8Mode=2 (SeS)
+- encoder: restrict motion vector size (AT)
+- encoder: fix rate control/non-rd-opt mismatch (AT)
+- encoder: cleanups (AT)
+- encoder: remove memory leak and clean up PPS usage (KS)
+- encoder: fix CABAC zero word calculation (KS)
+- decoder: fix POC mode 0 calculation (XI)
+- decoder: fix timing SEI parsing (IP)
+- decoder: fix dangling field output (KS)
+- decoder: fix VLC trace output (MT)
+- encoder/decoder: large performance and memory usage improvements (AT/KS)
+- encoder/decoder: fix CABAC CBP_block_bit (VG)
+- encoder/decoder: clean up and fix usage of skip_flag (KS/AM)
+- encoder/decoder: implement lossless coding for non 4:4:4 cases (SSu)
+
+
+Changes for Version JM 9.3 to JM 9.2
+------------------------------------
+- encoder: Bi predictive ME (AT)
+- encoder: encoder parameter tuning (AT)
+- encoder: fix allocation in error concealment (SM)
+- encoder: fix allocation in pyramid code (AT)
+- encoder: fix qp_const_422 assignment (SKa)
+- encoder: fix padding for automatically added borders (SKa)
+- encoder: support multiple PPS (AT)
+- encoder: picture RD-decision (AT)
+- encoder: rate-control fix (SM)
+- encoder: restrict num_ref_frames to MaxDpbSize (ZH/KS)
+- encoder: allocate rate control memory depending on frame size (KS)
+- decoder: open trace file only once (AT)
+- decoder: remove duplicate initialization of error states (MA)
+- decoder: fix timing SEI parsing (PW/KS)
+- decoder: fix CABAC SI context selection (DM/KS)
+- encoder/decoder: fix neighboring of TotalCoeff in CAVLC (KS/WC)
+- encoder/decoder: fix PSNR calculation if cropping is enabled (KS)
+
+
+Changes for Version JM 9.2 to JM 9.1
+------------------------------------
+- encoder: fix possible integer overflow in quantization offsets (SN/AT)
+- encoder: fix I_PCM trace (SN)
+- encoder: restructure code (KS)
+- unixprep.sh: also convert config files (KS)
+
+
+Changes for Version JM 9.1 to JM 9.0
+------------------------------------
+- encoder: RCT: Enabling inter mode selection (WK)
+- encoder: RCT: Correcting I16 mode selection (WK)
+- encoder: fix YUV header seek problem (PL)
+- encoder: reduce memory usage (KS)
+- encoder: remove assert in RC (KS)
+- encoder: fix qpBSoffset usage (AT)
+- encoder: fix stored B-pictures (KS)
+- encoder: fix qp change (AT)
+- encoder: fix direct mode selection (KS)
+- encoder: fix wrong memory allocation in FastME code (KS)
+- encoder: fix IDR encoding (LP/SKa/AT)
+- encoder: fix QMatrix config file reading (KS)
+- encoder: automatically add borders for picture sizes that are not multiple of 16  (KS)
+- encoder: default config parameter initialization (AT)
+- encoder: add checks for minimum and maximun values for each config parameter (AT)
+- encoder: support for explicit lagrangian parameters (AT)
+- encoder: support for explicit rounding offset parameters (AT)
+- decoder: allow 4:2:0 file format for monochrome streams (LW/KS)
+- decoder: fix VLC coeff reading (WZ)
+- decoder: fix second chroma qp offset (TS/KS)
+- decoder: fix VUI syntax (SK)
+- decoder: new command line interface (AT)
+- encoder/decoder: RCT: Correcting lossless coding/decoding (WK)
+- encoder/decoder: fix file reading/writing for non-Intel architectures (KS)
+- encoder/decoder: Fix YUV 4:0:0 output (SG)
+- encoder/decoder: Fix prediction weight calculations (AT)
+
+
+Changes for Version JM 9.0 to JM 8.6
+------------------------------------
+
+New Features:
+- import FRExt branch (KS)
+- encoder: pyramid encoding structure (AT)
+- encoder/decoder: YUV 4:0:0 support (VG)
+- encoder: thresholding control (AT)
+
+Fixes/Upates:
+- encoder: clean up includes (KS)
+- encoder: increase maximum file name length (KS)
+- encoder: fix failed merge of temporal direct fix (LP)
+- encoder: fix RCT enc/dec mismatch (WK)
+- encoder: fix for CAVLC neighbouring total coeff (for RDopt) (SN)
+- encoder: fix for CAVLC level limit for small QP (SN)
+- encoder: fix memory leaks (CS/KS)
+- encoder: disallow RDOptimazation=2 (KS)
+- encoder: improve parameter names(AT)
+- encoder: fix rate control diff calculation (SM)
+- decoder: fix QP output (AT)
+- decoder: fix paired field output for increased bit depth (KS)
+- decoder: fix img->quad allocation (KS)
+- decoder: fix RGB file output (KS)
+- decoder: don't crash on PicTiming SEI when no SPS is active (KS)
+- encoder/decoder: fix gcc compiler warnings (KS)
+- encoder/decoder: fix inverse DC transform (WZ/KS)
+- encoder/decoder: reduce memory usage by making imgpel "unsinged short" (KS)
+
+
 Changes for Version JM 8.6 to JM 8.5
 ------------------------------------
 - encoder: fix command line checking order (KS)
@@ -308,7 +596,7 @@ Cleanups
 * remove many gcc warnings (KS)
 * remove unused code (KS)
 * clean up VLC reading (KS)
-* allocate less memory (WYK)
+* allocate less memory (YW)
 
 
 Changes for Version JM 6.0a to JM 6.0
@@ -451,10 +739,10 @@ Bug Fixes
 Changes for Version JM 4.4 to JM 4.3a
 -------------------------------------
 New features
-* FMO mode 3# [JVT-D095] (WYK)
-* FMO modes 4#~6# [JVT-D097] (WYK)
-* Scene information SEI message [JVT-D099] (WYK)
-* Redundant slices [JVT-D101] (WYK)
+* FMO mode 3# [JVT-D095] (YW)
+* FMO modes 4#~6# [JVT-D097] (YW)
+* Scene information SEI message [JVT-D099] (YW)
+* Redundant slices [JVT-D101] (YW)
 
 Note: FMO is broken.
 
@@ -564,7 +852,7 @@ Changes for Version JM 4.0c to JM 4.0b
 New features
 * New Macroblock modes for SP-frames [JVT-B055] (RK)
   Note: some problems related to decoding of SI-frames
-	are reported and have to be fixed
+  are reported and have to be fixed
  
 
 
@@ -783,7 +1071,7 @@ Bug Fixes
 * fix frame_rate calculation for B-frames (GH)
 * fix restriction on reference frames for intra frame period (KS)
 * first step RPSL fixes (KS)
-* fix RTP assert (WYK)
+* fix RTP assert (YW)
 * tracefile fix (DC)
 * fix spelling of config file parameter "NumberReferenceFrames" (MB)
 
@@ -843,15 +1131,22 @@ Bug Fixes
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 People:
 KS      Karsten Suehring        suehring@hhi.de
-SM      Siwei Ma                swma@jdl.ac.cn
 AF      Arild Fuldseth          arild.fuldseth@tandberg.no
 AH      Antti Hallapuro         antti.hallapuro@nokia.com
+AL      Athanasios Leontaris    athanasios.leontaris@dolby.com
 AJ      Anthony Joch            anthony@ubvideo.com
+AM      Alan MacDonald          newslists@warpzillion.com
 AS      Albert Simpson          ASimpson@amphion.com
 AT      Alexis Michael Tourapis alexismt@ieee.org
 AW      Armand Wemelsfelder     wemel@planet.nl
 BH      Barry Haskell           bhaskell@apple.com
+BJ      Byeungwoo Jeon          bjeon@yurim.skku.ac.kr
+BL      Brandon Lin             brandon@ubvideo.com
+BY      Bill Yi                 bill.xyi@gmail.com
 CG      Cristina Gomila         GomilaC@tce.com
+CK      Christopher Kotchey     ckotchey@us.ibm.com
+CS      Christian Schmidt       schmidt@ece.ucsb.edu
+CZ      Chunbo Zhu              cbzhu@mail.ustc.edu.cn
 DC      Doug Chin               dougchin@sandvideo.com
 DD      Dmitriy Demin           Dmitriy.Demin@Sun.COM
 DH      Dzung Hoang             dzung.hoang@conexant.com
@@ -859,7 +1154,7 @@ DK      Dimitris Kontopodis     dkonto@eikon.tum.de
 DM      Detlev Marpe            marpe@hhi.de
 DT      Dong Tian               tian@cs.tut.fi
 DW      Dong Wang               Dong.Wang@bristol.ac.uk
-ES	Eric Setton		esetton@stanford.edu
+ES      Eric Setton             esetton@stanford.edu
 FB      Frank Bossen            bossen@docomolabs-usa.com
 GB      Gabi Blaetterman        blaetter@hhi.de
 GC      Guy Cote                guy@videolocus.com
@@ -867,46 +1162,69 @@ GrC     Greg Conklin            gregc@real.com
 GS      Gary Sullivan           garysull@microsoft.com
 FW      Feng Wu                 fengwu@microsoft.com
 HS      Heiko Schwarz           hschwarz@hhi.de
+HZ      Huipin Zhang            hzhang@mobilygen.com
 IL      Inge Lille-Langoy       Inge.Lille-Langoy@telenor.com
 IM      Iole Moccagatta         imoccaga@lsil.com
+IP      Isabelle Perroux        isabelle.perroux@allegrodvt.com
 JA      James Au                james@ubvideo.com
 JB      Jill Boyce              BoyceJ@tce.com
 JC      John Cox                jc@sj.co.uk
 JK      Jeong Kwon Kim          kjk@mcubeworks.com
 JL      Jani Lainema            Jani.Lainema@nokia.com
 JS      Joonho Song             jhsong@varovision.com
+JSa     Jose Sanches            jose.sanches@st.com
 JX      Jian Feng Xu            fenax@video.mdc.tsinghua.edu.cn
+JXi     Jun Xin                 jxin@merl.com
+JZ      Jun Zhang               j_zhang1999@yahoo.com
 KL      Karl Lillevold          Karll@real.com
 KP      Krit Panusopone         KPanusopone@gi.com
 KSa     Kazushi Sato            kazushi@av.crl.sony.co.jp
 LK      Louis Kerofsky          lkerofsky@sharplabs.com
 LW      Limin Wang              liwang@gi.com
 LWi     Lowell Winger           lwinger@videolocus.com
+LP      Luca Pezzoni            luca.pezzoni@st.com
+MA      Mauricio Alvarez        alvarez@ac.upc.edu
 MB      Marcus Barkowsky        Marcus.Barkowsky@nt.e-technik.uni-erlangen.de
 MG      Michael Gallant         mgallant@videolocus.com
 ML      Maxim Lobasso           lobasso@hotmail.com
 MN      Mike Nilsson            mike.nilsson@bt.com
+MT      Mario Trentini          mario_trentini@realmagic.fr
 MW      Mathias Wien            wien@ient.rwth-aachen.de
-MWa	Michael Walter		eiMichaelWalter@web.de
+MWa     Michael Walter          eiMichaelWalter@web.de
 OD      Olivier Deygas          olivier.deygas@st.com
 PK      Petr Kadlec             Kadlec@FTW.at
 PL      Peter List              Peter.List@t-systems.de
 PN      Pavel Novotny           pnovotny@lsil.com
+PP      Purvin Pandit           purvin.pandit@thomson.net
 PW      Ping Wu                 pwu@tandbergtv.com
+RB      Roman Barsky            romanb@dsp.co.il
 RG      Rajeev Gandhi           rajeev@motorola.com
 RK      Ragip Kurceren          ragip.kurceren@nokia.com
 RS      Rickard Sjoberg         Rickard.Sjoberg@era.ericsson.se
 RaS     Raghavan Subramaniyan   Raghavan.S@motorola.com
 RV      Rajesh Kumar S Venkata  v-rajesh.kumar@st.com
+SB      Saurav Bandyopadhyay    skb3@buffalo.edu
+SF      Simon Fenney            simon.fenney@powervr.com
+SG      Steve Gordon            sgordon@broadcom.com
+SH      Sven Heithecker         heithecker@ida.ing.tu-bs.de
+SK      Shafi Ullah Khan        shafi@sarayusoftech.com
+SL      Stephan Lachowsky       stephan@mobilygen.com
+SKa     Shinya Kadono           kadono.shinya@jp.panasonic.com
+SM      Siwei Ma                swma@jdl.ac.cn
+SM      Sebastian Manciulea     sebastian@splash.ro
+SMy     Stefaan Mys             stefaan.mys@ugent.be
+SN      Satoshi Nakagawa        nakagawa@okilab.net
 SR      Shankar Regunathan      shanre@microsoft.com
-SM	Sebastian Manciulea	sebastian@splash.ro
-SN	Satoshi Nakagawa	nakagawa@okilab.net
-SW      Stephan Wenger          stewe@cs.tu-berlin.de
+SeS     Sergey A. Sablin        sergey@elecard.net.ru
+SSu     Shijun Sun              ssun@sharplabs.com
+SW      Stephan Wenger          stewe@stewe.org
 SY      Steve Yao               steveyao@sandvideo.com
+SZ      Steve Zeng              stevezeng@rogers.com
 TH      Till Hallbach           halbach@tele.ntnu.no
-THi	Tobias Hinz		hinz@hhi.de
+THi     Tobias Hinz             hinz@hhi.de
 TK      Thomas Kunlin           thomas.kunlin@st.com
 TO      Tobias Oelbaum          drehvial@gmx.net
+TP      Tom Pycke               tom.pycke@ugent.be
 TS      Teruhiko Suzuki         teruhiko@av.crl.sony.co.jp
 TSh     Tamar Shoham            Tamar.Shoham@comverse.com
 TSt     Thomas Stockhammer      stockhammer@lnt.ei.tum.de
@@ -915,13 +1233,23 @@ TWe     Thomas Wedi             wedi@tnt.uni-hannover.de
 TWa     Toby Walker             tobyw@usrl.sony.com
 VG      Valeri George           valeri.george@hhi.fraunhofer.de
 VV      Viktor Varsa            viktor.varsa@nokia.com
-WF	Wenfang Fu		fwf@video.mdc.tsinghua.edu.cn
-WYK     Ye-Kui Wang             wyk@ieee.org
+WC      Woong Il Choi           creata@ece.skku.ac.kr
+WF      Wenfang Fu              fwf@video.mdc.tsinghua.edu.cn
+WK      Woo-Shik Kim            wskim@sait.samsung.co.kr
+WZ      Weimin Zeng             wzeng@wischip.com
+XI      Xin                     xin@apple.com
+XS      Xiaoyan Sun             sunxiaoyan@msrchina.research.microsoft.com   
+XX      Xiaozhong Xu            xxz@video.mdc.tsinghua.edu.cn
+XY      Xiaoquan Yi             xyi@scu.edu
+YC      Yi-Jen Chiu             yi-jen.chiu@intel.com
+YD      Yunyang Dai             ydai@dolby.com
+YDh     Yves Dhondt              yves.dhondt@ugent.be
+YH      Yu-Wen Huang            YW_Huang@mtk.com.tw
 YK      Yoshihiro Kikuchi       yoshihiro.kikuchi@toshiba.co.jp
 YL      Yann Lemaguet           yann.lemaguet@philips.com
-YW      Ye-Kui Wang             wyk@ieee.org
-XS      Xiaoyan Sun             sunxiaoyan@msrchina.research.microsoft.com      
-ZH	Zhou Heng		zhou_heng@yahoo.com
+YW      Ye-Kui Wang             ye-kui.wang@nokia.com
+YX      Yanjun Xu               yxu@sarnoff.com
+ZH      Zhou Heng               zhou_heng@yahoo.com
 ZL      Li Zhang                zhangli@jdl.ac.cn
 ZX      Z. Xue                  jon_xz@yahoo.com
 ZY      Zheng Yanzhao           yzzheng@singnet.com

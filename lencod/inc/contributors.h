@@ -1,21 +1,3 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*! \file
  *     contributors.h
@@ -36,23 +18,25 @@
       Heinrich-Hertz-Institute for Communication Technology GmbH, Germany
       University of Hannover, Institut of Communication Theory and Signal Processing,Germany
       Videolocus, Canada
+      LSI Logic, Canada
       Motorola Inc., USA
       Microsoft Corp., USA
       Apple Computer, Inc.
       RealNetworks, Inc., USA
       Thomson, Inc., USA
+      Dolby Laboratories, Inc., USA
    \endverbatim
    \par Full Contact Information
    \verbatim
 
-      Lowell Winger                   <lwinger@videolocus.com><lwinger@uwaterloo.ca>
-      Guy                        <gcote@videolocus.com>
+      Lowell Winger                   <lwinger@videolocus.com><lwinger@uwaterloo.ca><lwinger@lsil.com>
+      Guy Côté                        <gcote@videolocus.com>
       Michael Gallant                 <mgallant@videolocus.com>
       VideoLocus Inc.
       97 Randall Dr.
       Waterloo, ON, Canada  N2V1C5
 
-      Inge Lille-Lang                <inge.lille-langoy@telenor.com>
+      Inge Lille-Langøy               <inge.lille-langoy@telenor.com>
       Telenor Broadband Services
       P.O.Box 6914 St.Olavs plass
       N-0130 Oslo, Norway
@@ -69,9 +53,15 @@
       D-10587 Berlin, Germany
 
       Jani Lainema                    <jani.lainema@nokia.com>
+      Ragip Kurceren                  <ragip.kurceren@nokia.com>
       Nokia Inc. / Nokia Research Center
       6000 Connection Drive
       Irving, TX 75039, USA
+
+      Miska M. Hannuksela             <miska.hannuksela@nokia.com>
+      Nokia Corporation / Nokia Mobile Phones
+      P.O. Box 88
+      33721 Tampere, Finland
 
       Sebastian Purreiter             <sebastian.purreiter@mch.siemens.de>
       Siemens AG
@@ -86,28 +76,6 @@
       30167 Hannover
 
       Thomas Stockhammer              <stockhammer@ei.tum.de>
-      Institute for Communications Engineering
-      Munich University of Technology
-      80290 Munich
-      Germany
-
-      Detlev Marpe                    <marpe@hhi.de>
-      Heinrich-Hertz-Institute
-      Einsteinufer 37
-      10587 Berlin
-      Germany
-
-      Guido Heising                   <heising@hhi.de>
-      Heinrich-Hertz-Institute
-      Einsteinufer 37
-      10587 Berlin
-      Germany
-
-      Ragip Kurceren                  <ragip.kurceren@nokia.com>
-      Nokia Inc. / Nokia Research Center
-      6000 Connection Drive
-      Irving, TX 75039, USA
-
       Tobias Oelbaum (TO)             <drehvial@gmx.net>
       Institute for Communications Engineering
       Munich University of Technology
@@ -118,23 +86,15 @@
       Philips Research France
 
       Dong Tian                       <tian@cs.tut.fi>
-      Ye-Kui Wang                  <wyk@ieee.org>
+      Ye-Kui Wang                     <wyk@ieee.org>
       Tampere University of Technology
       Tampere International Center for Signal Processing
       33720 Tampere, Finland
 
-      Miska M. Hannuksela             <miska.hannuksela@nokia.com>
-      Nokia Corporation / Nokia Mobile Phones
-      P.O. Box 88
-      33721 Tampere, Finland
-
       Karsten Suehring                <suehring@hhi.de>
-      Heinrich-Hertz-Institute
-      Einsteinufer 37
-      10587 Berlin
-      Germany
-
       Heiko Schwarz                   <hschwarz@hhi.de>
+      Detlev Marpe                    <marpe@hhi.de>
+      Guido Heising                   <heising@hhi.de>
       Heinrich-Hertz-Institute
       Einsteinufer 37
       10587 Berlin
@@ -149,46 +109,46 @@
       San Diego, CA 92121 USA
 
       Feng Wu                         <fengwu@microsoft.com>
-      Alexis Michael Tourapis         <alexismt@ieee.org>
       Xiaoyan Sun                     <sunxiaoyan@msrchina.research.microsoft.com>
       Microsoft Research Asia
       3/F, Beijing Sigma Center
       No.49, Zhichun Road, Hai Dian District,
       Beijing China 100080
 
-
-      Mathias Wien                     <wien@ient.rwth-aachen.de>
-      Institut und Lehrstuhl   Nachrichtentechnik
+      Mathias Wien                    <wien@ient.rwth-aachen.de>
+      Achim Dahlhoff                  <dahlhoff@ient.rwth-aachen.de>
+      Institut und Lehrstuhl für Nachrichtentechnik
       RWTH Aachen University
       52072 Aachen
       Germany
 
-      Achim Dahlhoff                   <dahlhoff@ient.rwth-aachen.de>
-      Institut und Lehrstuhl  Nachrichtentechnik
-      RWTH Aachen University
-      52072 Aachen
-      Germany
-
-      Yoshihiro Kikuchi                <yoshihiro.kikuchi@toshiba.co.jp>
-      Takeshi Chujoh                   <takeshi.chujoh@toshiba.co.jp>
+      Yoshihiro Kikuchi               <yoshihiro.kikuchi@toshiba.co.jp>
+      Takeshi Chujoh                  <takeshi.chujoh@toshiba.co.jp>
       Toshiba Corporation
       Research and Development Center
       Kawasaki 212-8582, Japan
 
-      Shinya Kadono                    <kadono@drl.mei.co.jp>
+      Shinya Kadono                   <kadono@drl.mei.co.jp>
       Matsushita Electric Industrial Co., Ltd.
       1006 Kadoma, Kadoma
       Osaka 663-8113, Japan
 
-      Dzung Hoang                     <dzung.hoang@conexant.com>
-      Eric Viscito                    <eric.viscito@conexant.com>
-      Conexant Systems. Inc.
-      MPEG Compression Group
-      20450 Stevens Creek Blvd.
+      Dzung Hoang                     <dthoang@yahoo.com>
+      10533 Roy Butler Dr.
+      Austin, TX 78717
+
+      Eric Viscito                    <eric@ev-consulting.com>
+      eV Consulting
+      52 Tracy Ln
+      Shelburne, VT 05482 USA
+
+      Dzung Hoang                     <dzung.hoang@xilient.com>
+      Xilient Inc.
+      10181 Bubb Rd.
       Cupertino, CA 95014
 
       Barry Haskell
-      Apple Computer, Inc.      <bhaskell@apple.com>
+      Apple Computer, Inc.            <bhaskell@apple.com>
       2 Infinite Loop
       Cupertino, California 95014
 
@@ -197,25 +157,38 @@
       2601 Elliott Ave
       Seattle, WA 98101
 
-      Jill Boyce             <jill.boyce@thomson.net>
-      Cristina Gomila        <cristina.gomila@thomson.net>
+      Jill Boyce                      <jill.boyce@thomson.net>
+      Cristina Gomila                 <cristina.gomila@thomson.net>
       Thomson
       2 Independence Way
       Princeton, NJ 08540
-      
-      Siwei Ma                                <swma@jdl.ac.cn>
+
+      Siwei Ma                        <swma@jdl.ac.cn>
       Institute of Computing Technology
-      Chinese Academy of Sciences 
+      Chinese Academy of Sciences
       Kexueyuan South Road 6
       Haidian District
       Beijing, China
-      
+
       Zhibo Chen                      <chenzhibo@tsinghua.org.cn>
       JianFeng Xu                     <fenax@video.mdc.tsinghua.edu.cn>
+      Wenfang Fu                      <fwf@video.mdc.tsinghua.edu.cn>
       Dept.of E&E, Tsinghua Univ
-      Haidian District 
+      Haidian District
       Beijing China, 100084
-        
+
+      Alexis Michael Tourapis         <alexismt@ieee.org><atour@dolby.com>
+      Athanasios Leontaris            <aleon@dolby.com>
+      Dolby Laboratories Inc.
+      3601 West Alameda Ave.
+      Burbank, CA 91505
+
+      Xiaoquan Yi                     <xyi@engr.scu.edu>
+      Jun Zhang                       <jzhang2@engr.scu.edu>
+      Dept. of C.E. Santa Clara Univ.
+      500 El Camino Real
+      Santa Clara, CA 95053
+
    \endverbatim
  */
 

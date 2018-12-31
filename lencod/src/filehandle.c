@@ -1,21 +1,3 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  **************************************************************************************
@@ -32,18 +14,11 @@
 
 #include "contributors.h"
 
-#include <string.h>
-#include <math.h>
-#include <time.h>
-#include <sys/timeb.h>
 #include <stdlib.h>
-#include <assert.h>
-#include <string.h>
 
 #include "global.h"
-#include "header.h"
+
 #include "rtp.h"
-#include "nalu.h"
 #include "annexb.h"
 #include "parset.h"
 #include "mbuffer.h"
@@ -70,30 +45,43 @@ void error(char *text, int code)
 /*!
  ************************************************************************
  * \brief
+ *     This function generates and writes the PPS
+ *
+ ************************************************************************
+ */
+int write_PPS(int len, int PPS_id)
+{
+  NALU_t *nalu;
+  nalu = NULL;
+  nalu = GeneratePic_parameter_set_NALU (PPS_id);
+  len += WriteNALU (nalu);
+  FreeNALU (nalu);
+
+  return len;
+}
+
+/*!
+ ************************************************************************
+ * \brief
  *    This function opens the output files and generates the
  *    appropriate sequence header
  ************************************************************************
  */
-
 int start_sequence()
 {
-  int len=0;
+  int i,len=0, total_pps = (input->GenerateMultiplePPS) ? 3 : 1;
   NALU_t *nalu;
 
- /*
-  根据选择的文件格式类型,产生不同的文件头部
-	h.264标准定义了2种编码文件的保存传输格式,annexb与rtp
-	请参见h.264标准
-*/
+
   switch(input->of_mode)
   {
     case PAR_OF_ANNEXB:
       OpenAnnexbFile (input->outfile);
-      WriteNALU = WriteAnnexbNALU;//按照"Byte stream format"格式写入文件
+      WriteNALU = WriteAnnexbNALU;
       break;
     case PAR_OF_RTP:
       OpenRTPFile (input->outfile);
-      WriteNALU = WriteRTPNALU;//按照RTP格式写入文件
+      WriteNALU = WriteRTPNALU;
       break;
     default:
       snprintf(errortext, ET_SIZE, "Output File Mode %d not supported", input->of_mode);
@@ -104,23 +92,69 @@ int start_sequence()
   //! As a sequence header, here we write the both sequence and picture
   //! parameter sets.  As soon as IDR is implemented, this should go to the
   //! IDR part, as both parsets have to be transmitted as part of an IDR.
-  //! An alterbative may be to consider this function the IDR start function.
+  //! An alternative may be to consider this function the IDR start function.
 
-  /*
-  根据输入的编码参数，产生编码序列的seq_parameters 和 pic_parameters.
-  详见标准。
-  */
   nalu = NULL;
   nalu = GenerateSeq_parameter_set_NALU ();
   len += WriteNALU (nalu);
   FreeNALU (nalu);
+
+  //! Lets write now the Picture Parameter sets. Output will be equal to the total number of bits spend here.
+  for (i=0;i<total_pps;i++)
+  {
+     len = write_PPS(len, i);
+  }
+
+  if (input->Generate_SEIVUI)
+  {
+    nalu = NULL;
+    nalu = GenerateSEImessage_NALU();
+    len += WriteNALU (nalu);
+    FreeNALU (nalu);
+  }
+
+  stats->bit_ctr_parametersets_n = len;
+  return 0;
+}
+
+/*!
+ ************************************************************************
+ * \brief
+ *    This function opens the output files and generates the
+ *    appropriate sequence header
+ ************************************************************************
+ */
+int rewrite_paramsets()
+{
+  int i,len=0, total_pps = (input->GenerateMultiplePPS) ? 3 : 1;
+  NALU_t *nalu;
+
+
+  //! As a sequence header, here we write the both sequence and picture
+  //! parameter sets.  As soon as IDR is implemented, this should go to the
+  //! IDR part, as both parsets have to be transmitted as part of an IDR.
+  //! An alternative may be to consider this function the IDR start function.
+
   nalu = NULL;
-  nalu = GeneratePic_parameter_set_NALU ();
+  nalu = GenerateSeq_parameter_set_NALU ();
   len += WriteNALU (nalu);
   FreeNALU (nalu);
 
-//  stat->bit_ctr_parametersets = len;
-    stat->bit_ctr_parametersets_n = len;
+  //! Lets write now the Picture Parameter sets. Output will be equal to the total number of bits spend here.
+  for (i=0;i<total_pps;i++)
+  {
+     len = write_PPS(len, i);
+  }
+
+  if (input->Generate_SEIVUI)
+  {
+    nalu = NULL;
+    nalu = GenerateSEImessage_NALU();
+    len += WriteNALU (nalu);
+    FreeNALU (nalu);
+  }
+
+  stats->bit_ctr_parametersets_n = len;
   return 0;
 }
 

@@ -9,7 +9,7 @@
  *     The main contributors are listed in contributors.h
  *
  *  \version
- *     JM 8.6
+ *     JM 12.1 (FRExt)
  *
  *  \note
  *     tags are used for document system "doxygen"
@@ -30,6 +30,7 @@
  *     - Byeong-Moon Jeon        <jeonbm@lge.com>
  *     - Gabi Blaettermann       <blaetter@hhi.de>
  *     - Ye-Kui Wang             <wyk@ieee.org>
+ *     - Valeri George           <george@hhi.de>
  *     - Karsten Suehring        <suehring@hhi.de>
  *
  ***********************************************************************
@@ -44,8 +45,13 @@
 #include <sys/timeb.h>
 
 #if defined WIN32
-  #include <conio.h>
+  #include <io.h>
+#else
+  #include <unistd.h>
 #endif
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 #include <assert.h>
 
@@ -58,11 +64,13 @@
 #include "annexb.h"
 #include "output.h"
 #include "cabac.h"
+#include "parset.h"
 
 #include "erc_api.h"
 
-#define JM          "8"
-#define VERSION     "8.6"
+#define JM          "12 (FRExt)"
+#define VERSION     "12.1"
+#define EXT_VERSION "(FRExt)"
 
 #define LOGFILE     "log.dec"
 #define DATADECFILE "dataDec.txt"
@@ -91,27 +99,215 @@ int global_init_done = 0;
 /*!
  ***********************************************************************
  * \brief
+ *   print help message and exit
+ ***********************************************************************
+ */
+void JMDecHelpExit ()
+{
+  fprintf( stderr, "\n   ldecod [-h] {[defdec.cfg] | {[-p pocScale][-i bitstream.264]...[-o output.yuv] [-r reference.yuv] [-uv]}}\n\n"
+    "## Parameters\n\n"
+
+    "## Options\n"
+    "   -h  :  prints function usage\n"
+    "       :  parse <defdec.cfg> for decoder operation.\n"
+    "   -i  :  Input file name. \n"
+    "   -o  :  Output file name. If not specified default output is set as test_dec.yuv\n\n"
+    "   -r  :  Reference file name. If not specified default output is set as test_rec.yuv\n\n"
+    "   -p  :  Poc Scale. \n"
+    "   -uv :  write chroma components for monochrome streams(4:2:0)\n\n"
+
+    "## Supported video file formats\n"
+    "   Input : .264 -> H.264 bitstream files. \n"
+    "   Output: .yuv -> RAW file. Format depends on bitstream information. \n\n"
+
+    "## Examples of usage:\n"
+    "   ldecod\n"
+    "   ldecod  -h\n"
+    "   ldecod  default.cfg\n"
+    "   ldecod  -i bitstream.264 -o output.yuv -r reference.yuv\n");
+
+  exit(-1);
+}
+
+
+void Configure(int ac, char *av[])
+{
+  int CLcount;
+  char *config_filename=NULL;
+  CLcount = 1;
+
+
+  strcpy(input->infile,"test.264");      //! set default bitstream name
+  strcpy(input->outfile,"test_dec.yuv"); //! set default output file name
+  strcpy(input->reffile,"test_rec.yuv"); //! set default reference file name
+  input->FileFormat = PAR_OF_ANNEXB;
+  input->ref_offset=0;
+  input->poc_scale=2;
+  input->silent = FALSE;
+
+#ifdef _LEAKYBUCKET_
+  input->R_decoder=500000;          //! Decoder rate
+  input->B_decoder=104000;          //! Decoder buffer size
+  input->F_decoder=73000;           //! Decoder initial delay
+  strcpy(input->LeakyBucketParamFile,"leakybucketparam.cfg");    // file where Leaky Bucket params (computed by encoder) are stored
+#endif
+
+  if (ac==2)
+  {
+    if (0 == strncmp (av[1], "-h", 2))
+    {
+      JMDecHelpExit();
+    }
+    else if (0 == strncmp (av[1], "-s", 2))
+    {
+      input->silent = TRUE;
+    }
+    else
+    {
+      config_filename=av[1];
+      init_conf(input, av[1]);
+    }
+    CLcount=2;
+  }
+
+  if (ac>=3)
+  {
+    if (0 == strncmp (av[1], "-i", 2))
+    {
+      strcpy(input->infile,av[2]);
+      CLcount = 3;
+    }
+    if (0 == strncmp (av[1], "-h", 2))
+    {
+      JMDecHelpExit();
+    }
+    if (0 == strncmp (av[1], "-s", 2))
+    {
+      input->silent = TRUE;
+    }
+  }
+
+  // Parse the command line
+
+  while (CLcount < ac)
+  {
+    if (0 == strncmp (av[CLcount], "-h", 2))
+    {
+      JMDecHelpExit();
+    }
+
+    if (0 == strncmp (av[CLcount], "-s", 2))
+    {
+      input->silent = TRUE;
+      CLcount ++;
+    }
+
+    if (0 == strncmp (av[CLcount], "-i", 2))  //! Input file
+    {
+      strcpy(input->infile,av[CLcount+1]);
+      CLcount += 2;
+    }
+    else if (0 == strncmp (av[CLcount], "-o", 2))  //! Output File
+    {
+      strcpy(input->outfile,av[CLcount+1]);
+      CLcount += 2;
+    }
+    else if (0 == strncmp (av[CLcount], "-r", 2))  //! Reference File
+    {
+      strcpy(input->reffile,av[CLcount+1]);
+      CLcount += 2;
+    }
+    else if (0 == strncmp (av[CLcount], "-p", 2))  //! Poc Scale
+    {
+      sscanf (av[CLcount+1], "%d", &input->poc_scale);
+      CLcount += 2;
+    }
+    else if (0 == strncmp (av[CLcount], "-uv", 3))  //! indicate UV writing for 4:0:0
+    {
+      input->write_uv = 1;
+      CLcount ++;
+    }
+    else
+    {
+      //config_filename=av[CLcount];
+      //init_conf(input, config_filename);
+      snprintf(errortext, ET_SIZE, "Invalid syntax. Use ldecod -h for proper usage");
+      error(errortext, 300);
+    }
+  }
+
+
+#if TRACE
+  if ((p_trace=fopen(TRACEFILE,"w"))==0)             // append new statistic at the end
+  {
+    snprintf(errortext, ET_SIZE, "Error open file %s!",TRACEFILE);
+    error(errortext,500);
+  }
+#endif
+
+
+  if ((p_out=open(input->outfile, OPENFLAGS_WRITE, OPEN_PERMISSIONS))==-1)
+  {
+    snprintf(errortext, ET_SIZE, "Error open file %s ",input->outfile);
+    error(errortext,500);
+  }
+/*  if ((p_out2=fopen("out.yuv","wb"))==0)
+  {
+    snprintf(errortext, ET_SIZE, "Error open file %s ",input->outfile);
+    error(errortext,500);
+  }*/
+
+
+  fprintf(stdout,"----------------------------- JM %s %s -----------------------------\n", VERSION, EXT_VERSION);
+  fprintf(stdout," Decoder config file                    : %s \n",config_filename);
+  fprintf(stdout,"--------------------------------------------------------------------------\n");
+  fprintf(stdout," Input H.264 bitstream                  : %s \n",input->infile);
+  fprintf(stdout," Output decoded YUV                     : %s \n",input->outfile);
+  fprintf(stdout," Output status file                     : %s \n",LOGFILE);
+  if ((p_ref=open(input->reffile,OPENFLAGS_READ))==-1)
+  {
+    fprintf(stdout," Input reference file                   : %s does not exist \n",input->reffile);
+    fprintf(stdout,"                                          SNR values are not available\n");
+  }
+  else
+    fprintf(stdout," Input reference file                   : %s \n",input->reffile);
+
+  fprintf(stdout,"--------------------------------------------------------------------------\n");
+#ifdef _LEAKYBUCKET_
+  fprintf(stdout," Rate_decoder        : %8ld \n",input->R_decoder);
+  fprintf(stdout," B_decoder           : %8ld \n",input->B_decoder);
+  fprintf(stdout," F_decoder           : %8ld \n",input->F_decoder);
+  fprintf(stdout," LeakyBucketParamFile: %s \n",input->LeakyBucketParamFile); // Leaky Bucket Param file
+  calc_buffer(input);
+  fprintf(stdout,"--------------------------------------------------------------------------\n");
+#endif
+  fprintf(stdout,"POC must = frame# or field# for SNRs to be correct\n");
+  fprintf(stdout,"--------------------------------------------------------------------------\n");
+  fprintf(stdout,"  Frame       POC   Pic#   QP   SnrY    SnrU    SnrV   Y:U:V  Time(ms)\n");
+  fprintf(stdout,"--------------------------------------------------------------------------\n");
+
+}
+
+/*!
+ ***********************************************************************
+ * \brief
  *    main function for TML decoder
  ***********************************************************************
  */
 int main(int argc, char **argv)
 {
-    // allocate memory for the structures
+  int i;
+
+  // allocate memory for the structures
   if ((input =  (struct inp_par *)calloc(1, sizeof(struct inp_par)))==NULL) no_mem_exit("main: input");
-  if ((snr =  (struct snr_par *)calloc(1, sizeof(struct snr_par)))==NULL) no_mem_exit("main: snr");
-  if ((img =  (struct img_par *)calloc(1, sizeof(struct img_par)))==NULL) no_mem_exit("main: img");
+  if ((snr   =  (struct snr_par *)calloc(1, sizeof(struct snr_par)))==NULL) no_mem_exit("main: snr");
+  if ((img   =  (struct img_par *)calloc(1, sizeof(struct img_par)))==NULL) no_mem_exit("main: img");
 
-  // Read Configuration File
-  if (argc != 2)
-  {
-    snprintf(errortext, ET_SIZE, "Usage: %s <config.dat> \n\t<config.dat> defines decoder parameters",argv[0]);
-    error(errortext, 300);
-  }
 
-  init_conf(input, argv[1]);
+  Configure (argc, argv);
 
   init_old_slice();
-  
+
   switch (input->FileFormat)
   {
   case 0:
@@ -134,7 +330,6 @@ int main(int argc, char **argv)
   dpb.init_done = 0;
   g_nFrame = 0;
 
-//  init_dpb(input);
   init_out_buffer();
 
   img->idr_psnr_number=input->ref_offset;
@@ -145,10 +340,17 @@ int main(int argc, char **argv)
   img->dec_ref_pic_marking_buffer = NULL;
 
   // B pictures
-  Bframe_ctr=0;
+  Bframe_ctr=snr->frame_ctr=0;
 
   // time for total decoding session
   tot_time = 0;
+
+  // reference flag initialization
+  for(i=0;i<17;i++)
+  {
+    ref_flag[i]=1;
+  }
+
   while (decode_one_frame(img, input, snr) != EOS)
     ;
 
@@ -165,25 +367,26 @@ int main(int argc, char **argv)
 
   CloseBitstreamFile();
 
-  fclose(p_out);
+  close(p_out);
 //  fclose(p_out2);
-  if (p_ref)
-    fclose(p_ref);
+  if (p_ref!=-1)
+    close(p_ref);
 #if TRACE
   fclose(p_trace);
 #endif
 
   ercClose(erc_errorVar);
 
+  CleanUpPPS();
+
   free_dpb();
   uninit_out_buffer();
-
-  free_collocated(Co_located);
+  free_colocated(Co_located);
   free (input);
   free (snr);
   free (img);
-  
-  //while( !kbhit() ); 
+
+  //while( !kbhit() );
   return 0;
 }
 
@@ -196,15 +399,57 @@ int main(int argc, char **argv)
  */
 void init(struct img_par *img)  //!< image parameters
 {
-  int i;
-
-  // initilize quad matrix used in snr routine
-  for (i=0; i <  256; i++)
-  {
-    img->quad[i]=i*i; // fix from TML 1, truncation removed
-  }
-
   img->oldFrameSizeInMbs = -1;
+
+  imgY_ref  = NULL;
+  imgUV_ref = NULL;
+
+  img->recovery_point = 0;
+  img->recovery_point_found = 0;
+  img->recovery_poc = 0x7fffffff; /* set to a max value */
+}
+
+/*!
+ ***********************************************************************
+ * \brief
+ *    Initialize FREXT variables
+ ***********************************************************************
+ */
+void init_frext(struct img_par *img)  //!< image parameters
+{
+  //pel bitdepth init
+  img->bitdepth_luma_qp_scale   = 6*(img->bitdepth_luma   - 8);
+  if(img->bitdepth_luma > img->bitdepth_chroma || active_sps->chroma_format_idc == YUV400)
+    img->pic_unit_bitsize_on_disk = (img->bitdepth_luma > 8)? 16:8;
+  else
+    img->pic_unit_bitsize_on_disk = (img->bitdepth_chroma > 8)? 16:8;
+  img->dc_pred_value_luma = 1<<(img->bitdepth_luma - 1);
+  img->max_imgpel_value = (1<<img->bitdepth_luma) - 1;
+  img->mb_size[0][0] = img->mb_size[0][1] = MB_BLOCK_SIZE;
+
+  if (active_sps->chroma_format_idc != YUV400)
+  {
+    //for chrominance part
+    img->bitdepth_chroma_qp_scale = 6*(img->bitdepth_chroma - 8);
+    img->dc_pred_value_chroma     = 1<<(img->bitdepth_chroma - 1);
+    img->max_imgpel_value_uv      = (1<<img->bitdepth_chroma) - 1;
+    img->num_blk8x8_uv = (1<<active_sps->chroma_format_idc)&(~(0x1));
+    img->num_cdc_coeff = img->num_blk8x8_uv<<1;
+    img->mb_size[1][0] = img->mb_size[2][0] = img->mb_cr_size_x  = (active_sps->chroma_format_idc==YUV420 || active_sps->chroma_format_idc==YUV422)? 8:16;
+    img->mb_size[1][1] = img->mb_size[2][1] = img->mb_cr_size_y  = (active_sps->chroma_format_idc==YUV444 || active_sps->chroma_format_idc==YUV422)? 16:8;
+  }
+  else
+  {
+    img->bitdepth_chroma_qp_scale = 0;
+    img->max_imgpel_value_uv      = 0;
+    img->num_blk8x8_uv = 0;
+    img->num_cdc_coeff = 0;
+    img->mb_size[1][0] = img->mb_size[2][0] = img->mb_cr_size_x  = 0;
+    img->mb_size[1][1] = img->mb_size[2][1] = img->mb_cr_size_y  = 0;
+  }
+  img->mb_size_blk[0][0] = img->mb_size_blk[0][1] = img->mb_size[0][0] >> 2;
+  img->mb_size_blk[1][0] = img->mb_size_blk[2][0] = img->mb_size[1][0] >> 2;
+  img->mb_size_blk[1][1] = img->mb_size_blk[2][1] = img->mb_size[1][1] >> 2;
 }
 
 
@@ -220,11 +465,14 @@ void init(struct img_par *img)  //!< image parameters
  *    none
  ************************************************************************
  */
-void init_conf(struct inp_par *inp,
-               char *config_filename)
+void init_conf(struct inp_par *inp, char *config_filename)
 {
   FILE *fd;
   int NAL_mode;
+
+  // picture error concealment
+  long int temp;
+  char tempval[100];
 
   // read the decoder configuration file
   if((fd=fopen(config_filename,"r")) == NULL)
@@ -233,27 +481,20 @@ void init_conf(struct inp_par *inp,
     error(errortext, 300);
   }
 
-  fscanf(fd,"%s",inp->infile);                // H.264 compressed input bitsream
+  fscanf(fd,"%s",inp->infile);                // H.264 compressed input bitstream
   fscanf(fd,"%*[^\n]");
 
-  fscanf(fd,"%s",inp->outfile);               // YUV 4:2:2 input format
+  fscanf(fd,"%s",inp->outfile);               // RAW (YUV/RGB) output file
   fscanf(fd,"%*[^\n]");
 
   fscanf(fd,"%s",inp->reffile);               // reference file
   fscanf(fd,"%*[^\n]");
 
-
-  // Frame buffer size
-  fscanf(fd,"%d,",&inp->dpb_size);   // may be overwritten in case of RTP NAL
+  fscanf(fd,"%d",&(inp->write_uv));           // write UV in YUV 4:0:0 mode
   fscanf(fd,"%*[^\n]");
-  if (inp->dpb_size < 1)
-  {
-    snprintf(errortext, ET_SIZE, "Decoded Picture Buffer Size is %d. It has to be at least 1",inp->dpb_size);
-    error(errortext,1);
-  }
 
   fscanf(fd,"%d",&(NAL_mode));                // NAL mode
-    fscanf(fd,"%*[^\n]");
+  fscanf(fd,"%*[^\n]");
 
   switch(NAL_mode)
   {
@@ -275,11 +516,18 @@ void init_conf(struct inp_par *inp,
   fscanf(fd,"%*[^\n]");
 
 
-  if (inp->poc_scale < 1 || inp->poc_scale > 2)
+  if (inp->poc_scale < 1 || inp->poc_scale > 10)
   {
-    snprintf(errortext, ET_SIZE, "Poc Scale is %d. It has to be 1 or 2",inp->poc_scale);
+    snprintf(errortext, ET_SIZE, "Poc Scale is %d. It has to be within range 1 to 10",inp->poc_scale);
     error(errortext,1);
   }
+
+  inp->write_uv=1;
+
+  // picture error concealment
+  img->conceal_mode = inp->conceal_mode = 0;
+  img->ref_poc_gap = inp->ref_poc_gap = 2;
+  img->poc_gap = inp->poc_gap = 2;
 
 #ifdef _LEAKYBUCKET_
   fscanf(fd,"%ld,",&inp->R_decoder);             // Decoder rate
@@ -287,59 +535,38 @@ void init_conf(struct inp_par *inp,
   fscanf(fd,"%ld,",&inp->B_decoder);             // Decoder buffer size
   fscanf(fd, "%*[^\n]");
   fscanf(fd,"%ld,",&inp->F_decoder);             // Decoder initial delay
-  fscanf(fd, "%*[^\n]"); 
+  fscanf(fd, "%*[^\n]");
   fscanf(fd,"%s",inp->LeakyBucketParamFile);    // file where Leaky Bucket params (computed by encoder) are stored
   fscanf(fd,"%*[^\n]");
 #endif
 
+  /* since error concealment parameters are added at the end of
+  decoder conf file we need to read the leakybucket params to get to
+  those parameters */
+#ifndef _LEAKYBUCKET_
+  fscanf(fd,"%ld,",&temp);
+  fscanf(fd, "%*[^\n]");
+  fscanf(fd,"%ld,",&temp);
+  fscanf(fd, "%*[^\n]");
+  fscanf(fd,"%ld,",&temp);
+  fscanf(fd, "%*[^\n]");
+  fscanf(fd,"%s",tempval);
+  fscanf(fd,"%*[^\n]");
+#endif
+
+  fscanf(fd,"%d",&inp->conceal_mode);   // Mode of Error Concealment
+  fscanf(fd,"%*[^\n]");
+  img->conceal_mode = inp->conceal_mode;
+  fscanf(fd,"%d",&inp->ref_poc_gap);   // POC gap depending on pattern
+  fscanf(fd,"%*[^\n]");
+  img->ref_poc_gap = inp->ref_poc_gap;
+  fscanf(fd,"%d",&inp->poc_gap);   // POC gap between consecutive frames in display order
+  fscanf(fd,"%*[^\n]");
+  img->poc_gap = inp->poc_gap;
+  fscanf(fd,"%d,",&inp->silent);     // use silent decode mode
+  fscanf(fd,"%*[^\n]");
+
   fclose (fd);
-
-
-#if TRACE
-  if ((p_trace=fopen(TRACEFILE,"w"))==0)             // append new statistic at the end
-  {
-    snprintf(errortext, ET_SIZE, "Error open file %s!",TRACEFILE);
-    error(errortext,500);
-  }
-#endif
-
-
-  if ((p_out=fopen(inp->outfile,"wb"))==0)
-  {
-    snprintf(errortext, ET_SIZE, "Error open file %s ",inp->outfile);
-    error(errortext,500);
-  }
-/*  if ((p_out2=fopen("out.yuv","wb"))==0)
-  {
-    snprintf(errortext, ET_SIZE, "Error open file %s ",inp->outfile);
-    error(errortext,500);
-  }*/
-
-  fprintf(stdout,"--------------------------------------------------------------------------\n");
-  fprintf(stdout," Decoder config file                    : %s \n",config_filename);
-  fprintf(stdout,"--------------------------------------------------------------------------\n");
-  fprintf(stdout," Input H.264 bitstream                  : %s \n",inp->infile);
-  fprintf(stdout," Output decoded YUV 4:2:0               : %s \n",inp->outfile);
-  fprintf(stdout," Output status file                     : %s \n",LOGFILE);
-  if ((p_ref=fopen(inp->reffile,"rb"))==0)
-  {
-    fprintf(stdout," Input reference file                   : %s does not exist \n",inp->reffile);
-    fprintf(stdout,"                                          SNR values are not available\n");
-  }
-  else
-    fprintf(stdout," Input reference file                   : %s \n",inp->reffile);
-
-  fprintf(stdout,"--------------------------------------------------------------------------\n");
-#ifdef _LEAKYBUCKET_
-  fprintf(stdout," Rate_decoder        : %8ld \n",inp->R_decoder);
-  fprintf(stdout," B_decoder           : %8ld \n",inp->B_decoder);
-  fprintf(stdout," F_decoder           : %8ld \n",inp->F_decoder);
-  fprintf(stdout," LeakyBucketParamFile: %s \n",inp->LeakyBucketParamFile); // Leaky Bucket Param file
-  calc_buffer(inp);
-  fprintf(stdout,"--------------------------------------------------------------------------\n");
-#endif
-  fprintf(stdout,"POC must = frame# or field# for SNRs to be correct\n");
-  fprintf(stdout,"Frame    POC   QP  SnrY    SnrU    SnrV   Time(ms)\n");
 }
 
 /*!
@@ -361,6 +588,7 @@ void report(struct inp_par *inp, struct img_par *img, struct snr_par *snr)
   #define OUTSTRING_SIZE 255
   char string[OUTSTRING_SIZE];
   FILE *p_log;
+  char yuv_formats[4][4]= { {"400"}, {"420"}, {"422"}, {"444"} };
 
 #ifndef WIN32
   time_t  now;
@@ -369,14 +597,26 @@ void report(struct inp_par *inp, struct img_par *img, struct snr_par *snr)
   char timebuf[128];
 #endif
 
-  fprintf(stdout,"-------------------- Average SNR all frames ------------------------------\n");
-  fprintf(stdout," SNR Y(dB)           : %5.2f\n",snr->snr_ya);
-  fprintf(stdout," SNR U(dB)           : %5.2f\n",snr->snr_ua);
-  fprintf(stdout," SNR V(dB)           : %5.2f\n",snr->snr_va);
-  fprintf(stdout," Total decoding time : %.3f sec \n",tot_time*0.001);
-  fprintf(stdout,"--------------------------------------------------------------------------\n");
-  fprintf(stdout," Exit JM %s decoder, ver %s ",JM,VERSION);
-  fprintf(stdout,"\n");
+  if (input->silent == FALSE)
+  {
+    fprintf(stdout,"-------------------- Average SNR all frames ------------------------------\n");
+    fprintf(stdout," SNR Y(dB)           : %5.2f\n",snr->snr_ya);
+    fprintf(stdout," SNR U(dB)           : %5.2f\n",snr->snr_ua);
+    fprintf(stdout," SNR V(dB)           : %5.2f\n",snr->snr_va);
+    fprintf(stdout," Total decoding time : %.3f sec \n",tot_time*0.001);
+    fprintf(stdout,"--------------------------------------------------------------------------\n");
+    fprintf(stdout," Exit JM %s decoder, ver %s ",JM, VERSION);
+    fprintf(stdout,"\n");
+  }
+  else
+  {
+    fprintf(stdout,"\n----------------------- Decoding Completed -------------------------------\n");
+    fprintf(stdout," Total decoding time : %.3f sec \n",tot_time*0.001);
+    fprintf(stdout,"--------------------------------------------------------------------------\n");
+    fprintf(stdout," Exit JM %s decoder, ver %s ",JM, VERSION);
+    fprintf(stdout,"\n");
+  }
+
   // write to log file
 
   snprintf(string, OUTSTRING_SIZE, "%s", LOGFILE);
@@ -389,18 +629,20 @@ void report(struct inp_par *inp, struct img_par *img, struct snr_par *snr)
     }
     else                                              // Create header to new file
     {
-      fprintf(p_log," ------------------------------------------------------------------------------------------\n");
+      fprintf(p_log," -------------------------------------------------------------------------------------------------------------------\n");
       fprintf(p_log,"|  Decoder statistics. This file is made first time, later runs are appended               |\n");
-      fprintf(p_log," ------------------------------------------------------------------------------------------ \n");
-      fprintf(p_log,"| Date  | Time  |    Sequence        |#Img|Format|SNRY 1|SNRU 1|SNRV 1|SNRY N|SNRU N|SNRV N|\n");
-      fprintf(p_log," ------------------------------------------------------------------------------------------\n");
+      fprintf(p_log," ------------------------------------------------------------------------------------------------------------------- \n");
+      fprintf(p_log,"|   ver  | Date  | Time  |    Sequence        |#Img| Format  | YUV |Coding|SNRY 1|SNRU 1|SNRV 1|SNRY N|SNRU N|SNRV N|\n");
+      fprintf(p_log," -------------------------------------------------------------------------------------------------------------------\n");
     }
   }
   else
-  { 
+  {
     fclose(p_log);
     p_log=fopen(string,"a");                    // File exist,just open for appending
   }
+
+  fprintf(p_log,"|%s/%-4s", VERSION, EXT_VERSION);
 
 #ifdef WIN32
   _strdate( timebuf );
@@ -422,6 +664,17 @@ void report(struct inp_par *inp, struct img_par *img, struct snr_par *snr)
   fprintf(p_log,"%20.20s|",inp->infile);
 
   fprintf(p_log,"%3d |",img->number);
+  fprintf(p_log,"%4dx%-4d|", img->width, img->height);
+  fprintf(p_log," %s |", &(yuv_formats[img->yuv_format][0]));
+
+  if (active_pps)
+  {
+    if (active_pps->entropy_coding_mode_flag == UVLC)
+      fprintf(p_log," CAVLC|");
+    else
+      fprintf(p_log," CABAC|");
+  }
+
 
   fprintf(p_log,"%6.3f|",snr->snr_y1);
   fprintf(p_log,"%6.3f|",snr->snr_u1);
@@ -529,7 +782,7 @@ DataPartition *AllocPartition(int n)
 /*!
  ************************************************************************
  * \brief
- *    Frees a partition structure (array).  
+ *    Frees a partition structure (array).
  *
  * \par Input:
  *    Partition to be freed, size of partition Array (Number of Partitions)
@@ -637,6 +890,7 @@ void free_slice(struct inp_par *inp, struct img_par *img)
 int init_global_buffers()
 {
   int memory_size=0;
+  int quad_range, i;
 
   if (global_init_done)
   {
@@ -644,8 +898,12 @@ int init_global_buffers()
   }
 
   // allocate memory for reference frame in find_snr
-  memory_size += get_mem2D(&imgY_ref, img->height, img->width);
-  memory_size += get_mem3D(&imgUV_ref, 2, img->height_cr, img->width_cr);
+  memory_size += get_mem2Dpel(&imgY_ref, img->height, img->width);
+
+  if (active_sps->chroma_format_idc != YUV400)
+    memory_size += get_mem3Dpel(&imgUV_ref, 2, img->height_cr, img->width_cr);
+  else
+    imgUV_ref=NULL;
 
   // allocate memory in structure img
   if(((img->mb_data) = (Macroblock *) calloc(img->FrameSizeInMbs, sizeof(Macroblock))) == NULL)
@@ -654,18 +912,38 @@ int init_global_buffers()
   if(((img->intra_block) = (int*)calloc(img->FrameSizeInMbs, sizeof(int))) == NULL)
     no_mem_exit("init_global_buffers: img->intra_block");
 
-  memory_size += get_mem2Dint(&(img->ipredmode), 4*img->PicWidthInMbs , 4*img->FrameHeightInMbs);
+  memory_size += get_mem2Dint(&PicPos,img->FrameSizeInMbs + 1,2);  //! Helper array to access macroblock positions. We add 1 to also consider last MB.
 
-  memory_size += get_mem2Dint(&(img->field_anchor),4*img->FrameHeightInMbs, 4*img->PicWidthInMbs);
+  for (i = 0; i < (int) img->FrameSizeInMbs + 1;i++)
+  {
+    PicPos[i][0] = (i % img->PicWidthInMbs);
+    PicPos[i][1] = (i / img->PicWidthInMbs);
+  }
+
+  memory_size += get_mem2D(&(img->ipredmode), 4*img->FrameHeightInMbs, 4*img->PicWidthInMbs);
 
   memory_size += get_mem3Dint(&(img->wp_weight), 2, MAX_REFERENCE_PICTURES, 3);
   memory_size += get_mem3Dint(&(img->wp_offset), 6, MAX_REFERENCE_PICTURES, 3);
   memory_size += get_mem4Dint(&(img->wbp_weight), 6, MAX_REFERENCE_PICTURES, MAX_REFERENCE_PICTURES, 3);
 
   // CAVLC mem
-  memory_size += get_mem3Dint(&(img->nz_coeff), img->FrameSizeInMbs, 4, 6);
+  memory_size += get_mem3Dint(&(img->nz_coeff), img->FrameSizeInMbs, 4, 4 + img->num_blk8x8_uv);
 
-  memory_size += get_mem2Dint(&(img->siblock),img->PicWidthInMbs  , img->FrameHeightInMbs);
+  memory_size += get_mem2Dint(&(img->siblock), img->FrameHeightInMbs, img->PicWidthInMbs);
+
+  if(img->max_imgpel_value > img->max_imgpel_value_uv || active_sps->chroma_format_idc == YUV400)
+    quad_range = (img->max_imgpel_value + 1) * 2;
+  else
+    quad_range = (img->max_imgpel_value_uv + 1) * 2;
+
+  if ((img->quad = (int*)calloc (quad_range, sizeof(int))) == NULL)
+    no_mem_exit ("init_img: img->quad");
+
+  img->quad+=quad_range/2;
+  for (i=0; i < quad_range/2; ++i)
+  {
+    img->quad[i]=img->quad[-i]=i*i;
+  }
 
   global_init_done = 1;
 
@@ -691,8 +969,9 @@ int init_global_buffers()
  */
 void free_global_buffers()
 {
-  free_mem2D (imgY_ref);
-  free_mem3D (imgUV_ref,2);
+  free_mem2Dpel (imgY_ref);
+  if (imgUV_ref)
+    free_mem3Dpel (imgUV_ref,2);
 
   // CAVLC free mem
   free_mem3Dint(img->nz_coeff, img->oldFrameSizeInMbs);
@@ -700,21 +979,25 @@ void free_global_buffers()
   free_mem2Dint(img->siblock);
 
   // free mem, allocated for structure img
-  if (img->mb_data       != NULL) free(img->mb_data);
+  if (img->mb_data != NULL)
+    free(img->mb_data);
+
+  free_mem2Dint(PicPos);
 
   free (img->intra_block);
-
-  free_mem2Dint (img->ipredmode);
-
-  free_mem2Dint(img->field_anchor);
+  free_mem2D(img->ipredmode);
 
   free_mem3Dint(img->wp_weight, 2);
   free_mem3Dint(img->wp_offset, 6);
   free_mem4Dint(img->wbp_weight, 6, MAX_REFERENCE_PICTURES);
 
+  if(img->max_imgpel_value > img->max_imgpel_value_uv)
+    free (img->quad-(img->max_imgpel_value + 1));
+  else
+    free (img->quad-(img->max_imgpel_value_uv + 1));
+
   global_init_done = 0;
 
 }
-
 
 

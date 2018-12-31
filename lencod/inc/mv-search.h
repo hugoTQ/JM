@@ -1,28 +1,14 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  ************************************************************************
  * \file mv-search.h
  *
+ * \brief
+ *   array definition for motion search
+ *
  * \author
- *    Inge Lille-Langøy               <inge.lille-langoy@telenor.com>   \n
+ *    Inge Lille-Langoy               <inge.lille-langoy@telenor.com>   \n
+ *    Alexis Michael Tourapis         <alexis.tourapis@dolby.com>       \n
  *    Copyright (C) 1999  Telenor Satellite Services, Norway
  *
  ************************************************************************
@@ -41,5 +27,51 @@ const int QP2QUANT[40]=
   40,45,51,57,64,72,81,91
 };
 
+// Vertical MV Limits (integer/halfpel/quarterpel)
+// Currently only Integer Pel restrictions are used,
+// since the way values are specified
+// (i.e. mvlowbound = (levelmvlowbound + 1) and the way
+// Subpel ME is performed, subpel will always be within range.
+
+const int LEVELMVLIMIT[17][6] =
+{
+  {  -63,  63,  -128,  127,  -256,  255},
+  {  -63,  63,  -128,  127,  -256,  255},
+  { -127, 127,  -256,  255,  -512,  511},
+  { -127, 127,  -256,  255,  -512,  511},
+  { -127, 127,  -256,  255,  -512,  511},
+  { -127, 127,  -256,  255,  -512,  511},
+  { -255, 255,  -512,  511, -1024, 1023},
+  { -255, 255,  -512,  511, -1024, 1023},
+  { -255, 255,  -512,  511, -1024, 1023},
+  { -511, 511, -1024, 1023, -2048, 2047},
+  { -511, 511, -1024, 1023, -2048, 2047},
+  { -511, 511, -1024, 1023, -2048, 2047},
+  { -511, 511, -1024, 1023, -2048, 2047},
+  { -511, 511, -1024, 1023, -2048, 2047},
+  { -511, 511, -1024, 1023, -2048, 2047},
+  { -511, 511, -1024, 1023, -2048, 2047},
+  { -511, 511, -1024, 1023, -2048, 2047}
+
+  /*
+  {  -64,  63,  -128,  127,  -256,  255},
+  {  -64,  63,  -128,  127,  -256,  255},
+  { -128, 127,  -256,  255,  -512,  511},
+  { -128, 127,  -256,  255,  -512,  511},
+  { -128, 127,  -256,  255,  -512,  511},
+  { -128, 127,  -256,  255,  -512,  511},
+  { -256, 255,  -512,  511, -1024, 1023},
+  { -256, 255,  -512,  511, -1024, 1023},
+  { -256, 255,  -512,  511, -1024, 1023},
+  { -512, 511, -1024, 1023, -2048, 2047},
+  { -512, 511, -1024, 1023, -2048, 2047},
+  { -512, 511, -1024, 1023, -2048, 2047},
+  { -512, 511, -1024, 1023, -2048, 2047},
+  { -512, 511, -1024, 1023, -2048, 2047},
+  { -512, 511, -1024, 1023, -2048, 2047},
+  { -512, 511, -1024, 1023, -2048, 2047},
+  { -512, 511, -1024, 1023, -2048, 2047}
+  */
+};
 #endif
 

@@ -1,31 +1,16 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  ************************************************************************
  * \file block.h
  *
+ * \brief
+ *    constant arrays for single block processing
+ *
  * \author
- *  Inge Lille-Langøy               <inge.lille-langoy@telenor.com>    \n
- *  Telenor Satellite Services                                         \n
- *  P.O.Box 6914 St.Olavs plass                                        \n
- *  N-0130 Oslo, Norway
+ *    Inge Lille-Langoy               <inge.lille-langoy@telenor.com>    \n
+ *    Telenor Satellite Services                                         \n
+ *    P.O.Box 6914 St.Olavs plass                                        \n
+ *    N-0130 Oslo, Norway
  *
  ************************************************************************
  */
@@ -33,17 +18,8 @@
 #ifndef _BLOCK_H_
 #define _BLOCK_H_
 
-#include "global.h"
-
-
 //! make chroma QP from quant
-const byte QP_SCALE_CR[52]=
-{
-    0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,
-   12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,
-   28,29,29,30,31,32,32,33,34,34,35,35,36,36,37,37,
-   37,38,38,38,39,39,39,39
-};
+extern const byte QP_SCALE_CR[52] ;
 
 
 //! single scan pattern
@@ -66,9 +42,10 @@ const byte FIELD_SCAN[16][2] =
 
 
 //! array used to find expencive coefficients
-const byte COEFF_COST[16] =
+const byte COEFF_COST[2][16] =
 {
-  3,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0
+  {3,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0},
+  {9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9}
 };
 
 
@@ -129,6 +106,68 @@ const byte COEFF_BIT_COST[3][16][16]=
     {11,13,13,15,15,15,15,17,17,17,17,17,17,17,17,19},
   },
 };
+
+//! single scan pattern
+const byte SCAN_YUV422  [8][2] =
+{
+  {0,0},{0,1},
+  {1,0},{0,2},
+  {0,3},{1,1},
+  {1,2},{1,3}
+};
+
+//! look up tables for FRExt-chroma support
+const unsigned char hor_offset[4][4][4] =
+  {{{0, 0, 0, 0},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0}},
+
+  {{0, 4, 0, 4},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0}},
+
+  {{0, 4, 0, 4},
+  {0, 4, 0, 4},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0}},
+
+  {{0, 4, 0, 4},
+  {8,12, 8,12},
+  {0, 4, 0, 4},
+  {8,12, 8,12}}};
+
+const unsigned char ver_offset[4][4][4] =
+  { {{0, 0, 0, 0},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0}},
+
+  {{0, 0, 4, 4},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0}},
+
+  {{0, 0, 4, 4},
+  {8, 8,12,12},
+  {0, 0, 0, 0},
+  {0, 0, 0, 0}},
+
+  {{0, 0, 4, 4},
+  {0, 0, 4, 4},
+  {8, 8,12,12},
+  {8, 8,12,12}}};
+
+static unsigned char cbp_blk_chroma[8][4] =
+  { {16, 17, 18, 19},
+    {20, 21, 22, 23},
+    {24, 25, 26, 27},
+    {28, 29, 30, 31},
+    {32, 33, 34, 35},
+    {36, 37, 38, 39},
+    {40, 41, 42, 43},
+    {44, 45, 46, 47} };
 
 #endif
 

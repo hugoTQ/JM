@@ -1,23 +1,5 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
-/*! 
+/*!
  *************************************************************************************
  * \file decoder.c
  *
@@ -28,7 +10,7 @@
  *    October 22nd, 2001
  *
  * \author
- *    Main contributors (see contributors.h for copyright, address and 
+ *    Main contributors (see contributors.h for copyright, address and
  *    affiliation details)
  *    - Dimitrios Kontopodis                    <dkonto@eikon.tum.de>
  *************************************************************************************
@@ -41,23 +23,21 @@
 #include "refbuf.h"
 #include "image.h"
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    decodes one 8x8 partition
  *
  * \note
- *    Gives the expected value in the decoder of one 8x8 block. This is done based on the 
+ *    Gives the expected value in the decoder of one 8x8 block. This is done based on the
  *    stored reconstructed residue decs->resY[][], the reconstructed values imgY[][]
  *    and the motion vectors. The decoded 8x8 block is moved to decs->decY[][].
  *************************************************************************************
  */
- //chj 解码像素放在decs->decY[][]中
- //chj decs->resY[][]是残差，imgY[][]是参考块的重建像素chj
 void decode_one_b8block (int decoder, int mbmode, int b8block, int b8mode, int b8ref)
 {
   int i,j,block_y,block_x,bx,by;
-  int ref_inx = (IMG_NUMBER-1)%img->num_reference_frames;
+  int ref_inx = (IMG_NUMBER-1)%img->num_ref_frames;
 
   int mv[2][BLOCK_MULTIPLE][BLOCK_MULTIPLE];
   int resY_tmp[MB_BLOCK_SIZE][MB_BLOCK_SIZE];
@@ -72,7 +52,6 @@ void decode_one_b8block (int decoder, int mbmode, int b8block, int b8mode, int b
     {
       decs->decY[decoder][img->pix_y+j][img->pix_x+i]=enc_picture->imgY[img->pix_y+j][img->pix_x+i];
     }
-	//chj I片解码像素等于重建像素
   }
   else
   {
@@ -91,16 +70,16 @@ void decode_one_b8block (int decoder, int mbmode, int b8block, int b8mode, int b
     }
     else
     {
-      if (b8mode>=1 && b8mode<=7)//chj if属于7种分块模式中的一种
+      if (b8mode>=1 && b8mode<=7)
       {
         for (by=by0; by<by1; by++)
         for (bx=bx0; bx<bx1; bx++)
         {
-          mv[0][by][bx] = img->all_mv[bx][by][LIST_0][b8ref][b8mode][0];
-          mv[1][by][bx] = img->all_mv[bx][by][LIST_0][b8ref][b8mode][1];
+          mv[0][by][bx] = img->all_mv[by][bx][LIST_0][b8ref][b8mode][0];
+          mv[1][by][bx] = img->all_mv[by][bx][LIST_0][b8ref][b8mode][1];
         }
       }
-      else //chj 否则就是帧内编码
+      else
       {
         for (by=by0; by<by1; by++)
         for (bx=bx0; bx<bx1; bx++)
@@ -108,7 +87,7 @@ void decode_one_b8block (int decoder, int mbmode, int b8block, int b8mode, int b
           mv[0][by][bx] = mv[1][by][bx] = 0;
         }
       }
-          
+
       for(i=i0;i<i1;i++)
       for(j=j0;j<j1;j++)
       {
@@ -125,7 +104,7 @@ void decode_one_b8block (int decoder, int mbmode, int b8block, int b8mode, int b
         block_x = img->block_x+bx;
         block_y = img->block_y+by;
         if (img->type == B_SLICE && enc_picture != enc_frame_picture)
-          ref_inx = (IMG_NUMBER-b8ref-2)%img->num_reference_frames;
+          ref_inx = (IMG_NUMBER-b8ref-2)%img->num_ref_frames;
 
         Get_Reference_Block (decs->decref[decoder][ref_inx],
                              block_y, block_x,
@@ -135,17 +114,11 @@ void decode_one_b8block (int decoder, int mbmode, int b8block, int b8mode, int b
         for (j=0; j<4; j++)
         for (i=0; i<4; i++)
         {
-          /*
-          if (decs->RefBlock[j][i] != UMVPelY_14 (mref[ref_inx],
-                                                  (block_y*4+j)*4+mv[1][by][bx],
-                                                  (block_x*4+i)*4+mv[0][by][bx]))
-          ref_inx = (img->number-ref-1)%img->num_reference_frames;
-          */
           decs->decY[decoder][block_y*4+j][block_x*4+i] = resY_tmp[by*4+j][bx*4+i] + decs->RefBlock[j][i];
         }
       }
     }
-    else 
+    else
     {
       // Intra Refresh - Assume no spatial prediction
       for(i=i0;i<i1;i++)
@@ -158,7 +131,7 @@ void decode_one_b8block (int decoder, int mbmode, int b8block, int b8mode, int b
 }
 
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    decodes one macroblock
@@ -166,15 +139,13 @@ void decode_one_b8block (int decoder, int mbmode, int b8block, int b8mode, int b
  */
 void decode_one_mb (int decoder, Macroblock* currMB)
 {
-  /*
-  decode_one_b8block (decoder, currMB->mb_type, 0, currMB->b8mode[0], refFrArr[img->block_y+0][img->block_x+0]);
-  decode_one_b8block (decoder, currMB->mb_type, 1, currMB->b8mode[1], refFrArr[img->block_y+0][img->block_x+2]);
-  decode_one_b8block (decoder, currMB->mb_type, 2, currMB->b8mode[2], refFrArr[img->block_y+2][img->block_x+0]);
-  decode_one_b8block (decoder, currMB->mb_type, 3, currMB->b8mode[3], refFrArr[img->block_y+2][img->block_x+2]);
-  */
+  decode_one_b8block (decoder, currMB->mb_type, 0, currMB->b8mode[0], enc_picture->ref_idx[LIST_0][img->block_y+0][img->block_x+0]);//refFrArr[img->block_y+0][img->block_x+0]);
+  decode_one_b8block (decoder, currMB->mb_type, 1, currMB->b8mode[1], enc_picture->ref_idx[LIST_0][img->block_y+0][img->block_x+2]);//refFrArr[img->block_y+0][img->block_x+2]);
+  decode_one_b8block (decoder, currMB->mb_type, 2, currMB->b8mode[2], enc_picture->ref_idx[LIST_0][img->block_y+2][img->block_x+0]);//refFrArr[img->block_y+2][img->block_x+0]);
+  decode_one_b8block (decoder, currMB->mb_type, 3, currMB->b8mode[3], enc_picture->ref_idx[LIST_0][img->block_y+2][img->block_x+2]);//refFrArr[img->block_y+2][img->block_x+2]);
 }
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Finds the reference MB given the decoded reference frame
@@ -197,12 +168,12 @@ void decode_one_mb (int decoder, Macroblock* currMB)
  *    Output: The prediction for the block (block_y, block_x)
  *************************************************************************************
  */
-void Get_Reference_Block(byte **imY, 
-                         int block_y, 
-                         int block_x, 
-                         int mvhor, 
-                         int mvver, 
-                         byte **out)
+void Get_Reference_Block(imgpel **imY,
+                         int block_y,
+                         int block_x,
+                         int mvhor,
+                         int mvver,
+                         imgpel **out)
 {
   int i,j,y,x;
 
@@ -214,7 +185,7 @@ void Get_Reference_Block(byte **imY,
       out[j][i] = Get_Reference_Pixel(imY, y+j*4, x+i*4);
 }
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Finds a pixel (y,x) of the upsampled reference frame
@@ -225,7 +196,7 @@ void Get_Reference_Block(byte **imY,
  *    we just upsample when it is necessary.
  *************************************************************************************
  */
-byte Get_Reference_Pixel(byte **imY, int y_pos, int x_pos)
+byte Get_Reference_Pixel(imgpel **imY, int y_pos, int x_pos)
 {
 
   int dx, x;
@@ -234,7 +205,7 @@ byte Get_Reference_Pixel(byte **imY, int y_pos, int x_pos)
 
   int result = 0, result1, result2;
   int pres_x;
-  int pres_y; 
+  int pres_y;
 
   int tmp_res[6];
 
@@ -251,51 +222,51 @@ byte Get_Reference_Pixel(byte **imY, int y_pos, int x_pos)
   maxold_y = img->height-1;
 
   if (dx == 0 && dy == 0) { /* fullpel position */
-    result = imY[max(0,min(maxold_y,y_pos))][max(0,min(maxold_x,x_pos))];
+    result = imY[iClip3(0,maxold_y,y_pos)][iClip3(0,maxold_x,x_pos)];
   }
   else { /* other positions */
 
     if (dy == 0) {
 
-      pres_y = max(0,min(maxold_y,y_pos));
+      pres_y = iClip3(0,maxold_y,y_pos);
       for(x=-2;x<4;x++) {
-        pres_x = max(0,min(maxold_x,x_pos+x));
+        pres_x = iClip3(0,maxold_x,x_pos+x);
         result += imY[pres_y][pres_x]*COEF[x+2];
       }
 
-      result = max(0, min(255, (result+16)/32));
+      result = iClip3(0, img->max_imgpel_value, (result+16)/32);
 
       if (dx == 1) {
-        result = (result + imY[pres_y][max(0,min(maxold_x,x_pos))])/2;
+        result = (result + imY[pres_y][iClip3(0,maxold_x,x_pos)])/2;
       }
       else if (dx == 3) {
-        result = (result + imY[pres_y][max(0,min(maxold_x,x_pos+1))])/2;
+        result = (result + imY[pres_y][iClip3(0,maxold_x,x_pos+1)])/2;
       }
     }
     else if (dx == 0) {
 
-      pres_x = max(0,min(maxold_x,x_pos));
+      pres_x = iClip3(0,maxold_x,x_pos);
       for(y=-2;y<4;y++) {
-        pres_y = max(0,min(maxold_y,y_pos+y));
+        pres_y = iClip3(0,maxold_y,y_pos+y);
         result += imY[pres_y][pres_x]*COEF[y+2];
       }
 
-      result = max(0, min(255, (result+16)/32));
+      result = iClip3(0, img->max_imgpel_value, (result+16)/32);
 
       if (dy == 1) {
-        result = (result + imY[max(0,min(maxold_y,y_pos))][pres_x])/2;
+        result = (result + imY[iClip3(0,maxold_y,y_pos)][pres_x])/2;
       }
       else if (dy == 3) {
-        result = (result + imY[max(0,min(maxold_y,y_pos+1))][pres_x])/2;
+        result = (result + imY[iClip3(0,maxold_y,y_pos+1)][pres_x])/2;
       }
     }
     else if (dx == 2) {
 
       for(y=-2;y<4;y++) {
         result = 0;
-        pres_y = max(0,min(maxold_y,y_pos+y));
+        pres_y = iClip3(0,maxold_y,y_pos+y);
         for(x=-2;x<4;x++) {
-          pres_x = max(0,min(maxold_x,x_pos+x));
+          pres_x = iClip3(0,maxold_x,x_pos+x);
           result += imY[pres_y][pres_x]*COEF[x+2];
         }
         tmp_res[y+2] = result;
@@ -306,22 +277,22 @@ byte Get_Reference_Pixel(byte **imY, int y_pos, int x_pos)
         result += tmp_res[y+2]*COEF[y+2];
       }
 
-      result = max(0, min(255, (result+512)/1024));
+      result = iClip3(0, img->max_imgpel_value, (result+512)/1024);
 
       if (dy == 1) {
-        result = (result + max(0, min(255, (tmp_res[2]+16)/32)))/2;
+        result = (result + iClip3(0, img->max_imgpel_value, (tmp_res[2]+16)/32))/2;
       }
       else if (dy == 3) {
-        result = (result + max(0, min(255, (tmp_res[3]+16)/32)))/2;
+        result = (result + iClip3(0, img->max_imgpel_value, (tmp_res[3]+16)/32))/2;
       }
     }
     else if (dy == 2) {
 
       for(x=-2;x<4;x++) {
         result = 0;
-        pres_x = max(0,min(maxold_x,x_pos+x));
+        pres_x = iClip3(0,maxold_x,x_pos+x);
         for(y=-2;y<4;y++) {
-          pres_y = max(0,min(maxold_y,y_pos+y));
+          pres_y = iClip3(0,maxold_y,y_pos+y);
           result += imY[pres_y][pres_x]*COEF[y+2];
         }
         tmp_res[x+2] = result;
@@ -332,50 +303,50 @@ byte Get_Reference_Pixel(byte **imY, int y_pos, int x_pos)
         result += tmp_res[x+2]*COEF[x+2];
       }
 
-      result = max(0, min(255, (result+512)/1024));
+      result = iClip3(0, img->max_imgpel_value, (result+512)/1024);
 
       if (dx == 1) {
-        result = (result + max(0, min(255, (tmp_res[2]+16)/32)))/2;
+        result = (result + iClip3(0, img->max_imgpel_value, (tmp_res[2]+16)/32))/2;
       }
       else {
-        result = (result + max(0, min(255, (tmp_res[3]+16)/32)))/2;
+        result = (result + iClip3(0, img->max_imgpel_value, (tmp_res[3]+16)/32))/2;
       }
     }
     else {
 
       result = 0;
       pres_y = dy == 1 ? y_pos : y_pos+1;
-      pres_y = max(0,min(maxold_y,pres_y));
+      pres_y = iClip3(0,maxold_y,pres_y);
 
       for(x=-2;x<4;x++) {
-        pres_x = max(0,min(maxold_x,x_pos+x));
+        pres_x = iClip3(0,maxold_x,x_pos+x);
         result += imY[pres_y][pres_x]*COEF[x+2];
       }
 
-      result1 = max(0, min(255, (result+16)/32));
+      result1 = iClip3(0, img->max_imgpel_value, (result+16)/32);
 
       result = 0;
       pres_x = dx == 1 ? x_pos : x_pos+1;
-      pres_x = max(0,min(maxold_x,pres_x));
+      pres_x = iClip3(0,maxold_x,pres_x);
 
       for(y=-2;y<4;y++) {
-        pres_y = max(0,min(maxold_y,y_pos+y));
+        pres_y = iClip3(0,maxold_y,y_pos+y);
         result += imY[pres_y][pres_x]*COEF[y+2];
       }
 
-      result2 = max(0, min(255, (result+16)/32));
+      result2 = iClip3(0, img->max_imgpel_value, (result+16)/32);
       result = (result1+result2)/2;
     }
   }
 
   return result;
 }
-  
-/*! 
+
+/*!
  *************************************************************************************
  * \brief
  *    Performs the simulation of the packet losses, calls the error concealment funcs
- *    and copies the decoded images to the reference frame buffers of the decoders 
+ *    and copies the decoded images to the reference frame buffers of the decoders
  *
  *************************************************************************************
  */
@@ -386,12 +357,12 @@ void UpdateDecoders()
   {
     Build_Status_Map(decs->status_map); // simulates the packet losses
     Error_Concealment(decs->decY_best[k], decs->status_map, decs->decref[k]); // for the moment error concealment is just a "copy"
-    // Move decoded frames to reference buffers: (at the decoders this is done 
+    // Move decoded frames to reference buffers: (at the decoders this is done
     // without interpolation (upsampling) - upsampling is done while decoding
-    DecOneForthPix(decs->decY_best[k], decs->decref[k]); 
+    DecOneForthPix(decs->decY_best[k], decs->decref[k]);
   }
 }
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Copies one (reconstructed) image to the respective reference frame buffer
@@ -404,15 +375,15 @@ void UpdateDecoders()
  *    The reference buffer
  *************************************************************************************
  */
-void DecOneForthPix(byte **dY, byte ***dref)
+void DecOneForthPix(imgpel **dY, imgpel ***dref)
 {
   int j, ref=IMG_NUMBER%img->buf_cycle;
 
   for (j=0; j<img->height; j++)
-    memcpy(dref[ref][j], dY[j], img->width);
+    memcpy(dref[ref][j], dY[j], img->width*sizeof(imgpel));
 }
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Gives the prediction residue for a 8x8 block
@@ -437,12 +408,12 @@ void compute_residue_b8block (int b8block, int i16mode) // if not INTRA16x16 it 
     for (i=i0; i<i1; i++)
     for (j=j0; j<j1; j++)
     {
-      decs->resY[j][i] = enc_picture->imgY[img->pix_y+j][img->pix_x+i] - img->mpr[i][j];
+      decs->resY[j][i] = enc_picture->imgY[img->pix_y+j][img->pix_x+i] - img->mpr[j][i];
     }
   }
 }
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Gives the prediction residue for a macroblock
@@ -457,7 +428,7 @@ void compute_residue_mb (int i16mode)
 }
 
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Builds a random status map showing whether each MB is received or lost, based
@@ -473,7 +444,7 @@ void Build_Status_Map(byte **s_map)
 
   jj = img->height/MB_BLOCK_SIZE;
   ii = img->width/MB_BLOCK_SIZE;
-  
+
   for (j=0 ; j<jj; j++)
   for (i=0 ; i<ii; i++)
   {
@@ -498,12 +469,12 @@ void Build_Status_Map(byte **s_map)
   }
 }
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Performs some sort of error concealment for the areas that are lost according
  *    to the status_map
- *    
+ *
  * \param inY
  *    Error concealment is performed on this frame imY[][]
  * \param s_map
@@ -512,12 +483,12 @@ void Build_Status_Map(byte **s_map)
  *    The set of reference frames - may be used for the error concealment.
  *************************************************************************************
  */
-void Error_Concealment(byte **inY, byte **s_map, byte ***refY)
+void Error_Concealment(imgpel **inY, byte **s_map, imgpel ***refY)
 {
   int mb_y, mb_x, mb_h, mb_w;
   mb_h = img->height/MB_BLOCK_SIZE;
   mb_w = img->width/MB_BLOCK_SIZE;
-  
+
   for (mb_y=0; mb_y < mb_h; mb_y++)
   for (mb_x=0; mb_x < mb_w; mb_x++)
   {
@@ -525,24 +496,24 @@ void Error_Concealment(byte **inY, byte **s_map, byte ***refY)
   }
 }
 
-/*! 
+/*!
  *************************************************************************************
  * \brief
  *    Copies a certain MB (mb_y,mb_x) of the frame inY[][] from the previous frame.
  *    For the time there is no better EC...
  *************************************************************************************
  */
-void Conceal_Error(byte **inY, int mb_y, int mb_x, byte ***refY, byte **s_map)
+void Conceal_Error(imgpel **inY, int mb_y, int mb_x, imgpel ***refY, byte **s_map)
 {
   int i,j,block_x, block_y;
-  int ref_inx = (IMG_NUMBER-1)%img->num_reference_frames;
+  int ref_inx = (IMG_NUMBER-1)%img->num_ref_frames;
   int pos_y = mb_y*MB_BLOCK_SIZE, pos_x = mb_x*MB_BLOCK_SIZE;
   int mv[2][BLOCK_MULTIPLE][BLOCK_MULTIPLE];
   int resY[MB_BLOCK_SIZE][MB_BLOCK_SIZE];
-  int copy  = (decs->dec_mb_mode[mb_x][mb_y]==0 && (img->type==P_SLICE || (img->type==B_SLICE && img->nal_reference_idc>0)));
-  int inter = (((decs->dec_mb_mode[mb_x][mb_y]>=1 && decs->dec_mb_mode[mb_x][mb_y]<=3) || decs->dec_mb_mode[mb_x][mb_y]==P8x8) && (img->type==P_SLICE || (img->type==B_SLICE && img->nal_reference_idc>0)));
-  int ***tmp_mv = enc_picture->mv[LIST_0];
-  
+  int copy  = (decs->dec_mb_mode[mb_y][mb_x]==0 && (img->type==P_SLICE || (img->type==B_SLICE && img->nal_reference_idc>0)));
+  int inter = (((decs->dec_mb_mode[mb_y][mb_x]>=1 && decs->dec_mb_mode[mb_y][mb_x]<=3) || decs->dec_mb_mode[mb_y][mb_x]==P8x8) && (img->type==P_SLICE || (img->type==B_SLICE && img->nal_reference_idc>0)));
+  short ***tmp_mv = enc_picture->mv[LIST_0];
+
   switch(s_map[mb_y][mb_x])
   {
   case 1: //! whole slice lost (at least partition A lost)
@@ -560,18 +531,18 @@ void Conceal_Error(byte **inY, int mb_y, int mb_x, byte ***refY, byte **s_map)
     }
     break;
   case 5: //! partition B and partition C lost
-    
-    //! Copy motion vectors 
+
+    //! Copy motion vectors
     for (block_y=0; block_y<BLOCK_MULTIPLE; block_y++)
       for (block_x=0; block_x<BLOCK_MULTIPLE; block_x++)
         for (i=0;i<2;i++)
-          mv[i][block_y][block_x]=tmp_mv[mb_x*BLOCK_SIZE+block_x+4][mb_y*BLOCK_SIZE+block_y][i];
-    
-    //! Residuum ist set to zero    
+          mv[i][block_y][block_x]=tmp_mv[mb_y*BLOCK_SIZE+block_y][mb_x*BLOCK_SIZE+block_x+4][i];
+
+    //! Residue ist set to zero
     for(i=0;i<MB_BLOCK_SIZE;i++)
       for(j=0;j<MB_BLOCK_SIZE;j++)
         resY[j][i]=0;
-    
+
     //! not first frame
     if (img->type!=I_SLICE)
     {
@@ -583,7 +554,7 @@ void Conceal_Error(byte **inY, int mb_y, int mb_x, byte ***refY, byte **s_map)
             inY[pos_y+j][pos_x+i] = refY[ref_inx][pos_y+j][pos_x+i];
       }
       //! if inter mb
-      else if (inter)  
+      else if (inter)
       {
         for (block_y = mb_y*BLOCK_SIZE ; block_y < (mb_y*BLOCK_SIZE + BLOCK_MULTIPLE) ; block_y++)
           for (block_x = mb_x*BLOCK_SIZE ; block_x < (mb_x*BLOCK_SIZE + BLOCK_MULTIPLE) ; block_x++)
@@ -600,14 +571,14 @@ void Conceal_Error(byte **inY, int mb_y, int mb_x, byte ***refY, byte **s_map)
               }
           }
       }
-      else //intra; up to now only copy mb, may integrate nokia EC 
+      else //intra; up to now only copy mb, may integrate nokia EC
       {
         for (j=0;j<MB_BLOCK_SIZE;j++)
           for (i=0;i<MB_BLOCK_SIZE;i++)
             inY[pos_y+j][pos_x+i] = refY[ref_inx][pos_y+j][pos_x+i];
       }
     }
-    else //! first frame; up to now set value to grey, may integrate nokia EC 
+    else //! first frame; up to now set value to grey, may integrate nokia EC
     {
       for (j=0;j<MB_BLOCK_SIZE;j++)
         for (i=0;i<MB_BLOCK_SIZE;i++)
@@ -617,13 +588,13 @@ void Conceal_Error(byte **inY, int mb_y, int mb_x, byte ***refY, byte **s_map)
   case 3: //! Partition C lost
     if(img->type!=I_SLICE)
     {
-      //! Copy motion vectors 
+      //! Copy motion vectors
       for (block_y=0; block_y<BLOCK_MULTIPLE; block_y++)
         for (block_x=0; block_x<BLOCK_MULTIPLE; block_x++)
           for (i=0;i<2;i++)
-            mv[i][block_y][block_x]=tmp_mv[mb_x*BLOCK_SIZE+block_x+4][mb_y*BLOCK_SIZE+block_y][i];
-    
-      //! Residuum ist set to zero    
+            mv[i][block_y][block_x]=tmp_mv[mb_y*BLOCK_SIZE+block_y][mb_x*BLOCK_SIZE+block_x+4][i];
+
+      //! Residue ist set to zero
       for(i=0;i<MB_BLOCK_SIZE;i++)
         for(j=0;j<MB_BLOCK_SIZE;j++)
           resY[j][i]=0;
@@ -636,7 +607,7 @@ void Conceal_Error(byte **inY, int mb_y, int mb_x, byte ***refY, byte **s_map)
             inY[pos_y+j][pos_x+i] = refY[ref_inx][pos_y+j][pos_x+i];
       }
       //! if inter mb
-      else if (inter)  
+      else if (inter)
       {
         for (block_y = mb_y*BLOCK_SIZE ; block_y < (mb_y*BLOCK_SIZE + BLOCK_MULTIPLE) ; block_y++)
           for (block_x = mb_x*BLOCK_SIZE ; block_x < (mb_x*BLOCK_SIZE + BLOCK_MULTIPLE) ; block_x++)
@@ -665,7 +636,7 @@ void Conceal_Error(byte **inY, int mb_y, int mb_x, byte ***refY, byte **s_map)
             inY[pos_y+j][pos_x+i] = refY[ref_inx][pos_y+j][pos_x+i];
       }
     }
-    else //! first frame; up to now set value to grey, may integrate nokia EC 
+    else //! first frame; up to now set value to grey, may integrate nokia EC
     {
       for (j=0;j<MB_BLOCK_SIZE;j++)
         for (i=0;i<MB_BLOCK_SIZE;i++)

@@ -1,21 +1,3 @@
-/**********************************************************************
- * Software Copyright Licensing Disclaimer
- *
- * This software module was originally developed by contributors to the
- * course of the development of ISO/IEC 14496-10 for reference purposes
- * and its performance may not have been optimized.  This software
- * module is an implementation of one or more tools as specified by
- * ISO/IEC 14496-10.  ISO/IEC gives users free license to this software
- * module or modifications thereof. Those intending to use this software
- * module in products are advised that its use may infringe existing
- * patents.  ISO/IEC have no liability for use of this software module
- * or modifications thereof.  The original contributors retain full
- * rights to modify and use the code for their own purposes, and to
- * assign or donate the code to third-parties.
- *
- * This copyright notice must be included in all copies or derivative
- * works.  Copyright (c) ISO/IEC 2004.
- **********************************************************************/
 
 /*!
  ************************************************************************
@@ -32,7 +14,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <memory.h>
+
 #include "global.h"
+
 #include "memalloc.h"
 #include "rtp.h"
 #include "mbuffer.h"
@@ -51,7 +35,7 @@ Boolean seiHasRandom_access_point=FALSE;
 Boolean seiHasRef_pic_buffer_management_repetition=FALSE;
 Boolean seiHasSpare_picture=FALSE;
 
-Boolean seiHasSceneInformation=FALSE; // JVT-D099
+Boolean seiHasSceneInformation=FALSE;
 
 Boolean seiHasSubseq_information=FALSE;
 Boolean seiHasSubseq_layer_characteristics=FALSE;
@@ -65,7 +49,7 @@ Boolean seiHasSubseq_characteristics=FALSE;
  ************************************************************************
  */
 
-//! sei_message[0]: this struct is to store the sei message packetized independently 
+//! sei_message[0]: this struct is to store the sei message packetized independently
 //! sei_message[1]: this struct is to store the sei message packetized together with slice data
 sei_struct sei_message[2];
 
@@ -75,7 +59,7 @@ void InitSEIMessages()
   for (i=0; i<2; i++)
   {
     sei_message[i].data = malloc(MAXRTPPAYLOADLEN);
-    assert( sei_message[i].data != NULL );
+    if( sei_message[i].data == NULL ) no_mem_exit("InitSEIMessages: sei_message[i].data");
     sei_message[i].subPacketType = SEI_PACKET_TYPE;
     clear_sei_message(i);
   }
@@ -86,7 +70,7 @@ void InitSEIMessages()
   InitSubseqChar();
   if (input->NumFramesInELSubSeq != 0)
     InitSubseqLayerInfo();
-  InitSceneInformation(); // JVT-D099
+  InitSceneInformation();
   // init panscanrect sei message
   InitPanScanRectInfo();
   // init user_data_unregistered
@@ -100,14 +84,13 @@ void InitSEIMessages()
 void CloseSEIMessages()
 {
   int i;
-  
+
   if (input->NumFramesInELSubSeq != 0)
     CloseSubseqLayerInfo();
 
   CloseSubseqChar();
   CloseSparePicture();
-  CloseSceneInformation(); // JVT-D099
-  //Shankar Regunathan Oct 2002
+  CloseSceneInformation();
   ClosePanScanRectInfo();
   CloseUser_data_unregistered();
   CloseUser_data_registered_itu_t_t35();
@@ -122,7 +105,7 @@ void CloseSEIMessages()
 
 Boolean HaveAggregationSEI()
 {
-  if (sei_message[AGGREGATION_SEI].available && img->type != B_SLICE) 
+  if (sei_message[AGGREGATION_SEI].available && img->type != B_SLICE)
     return TRUE;
   if (seiHasSubseqInfo)
     return TRUE;
@@ -130,18 +113,18 @@ Boolean HaveAggregationSEI()
     return TRUE;
   if (seiHasSubseqChar)
     return TRUE;
-  if (seiHasSceneInformation) // JVT-D099
+  if (seiHasSceneInformation)
     return TRUE;
-  if (seiHasPanScanRectInfo) // Shankar Regunathan Oct 2002
+  if (seiHasPanScanRectInfo)
     return TRUE;
   if (seiHasUser_data_unregistered_info)
     return TRUE;
   if (seiHasUser_data_registered_itu_t_t35_info)
     return TRUE;
-  if (seiHasRandomAccess_info)
+  if (seiHasRecoveryPoint_info)
     return TRUE;
   return FALSE;
-//  return input->SparePictureOption && ( seiHasSpare_picture || seiHasSubseq_information || 
+//  return input->SparePictureOption && ( seiHasSpare_picture || seiHasSubseq_information ||
 //    seiHasSubseq_layer_characteristics || seiHasSubseq_characteristics );
 }
 
@@ -150,11 +133,11 @@ Boolean HaveAggregationSEI()
  *  \brief
  *     write one sei payload to the sei message
  *  \param id
- *    0, if this is the normal packet \n
+ *    0, if this is the normal packet\n
  *    1, if this is a aggregation packet
  *  \param payload
  *    a pointer that point to the sei payload. Note that the bitstream
- *    should have be byte aligned already. 
+ *    should have be byte aligned already.
  *  \param payload_size
  *    the size of the sei payload
  *  \param payload_type
@@ -166,7 +149,7 @@ Boolean HaveAggregationSEI()
 void write_sei_message(int id, byte* payload, int payload_size, int payload_type)
 {
   int offset, type, size;
-  assert(payload_type > SEI_ZERO && payload_type < SEI_MAX_ELEMENTS);
+  assert(payload_type >= 0 && payload_type < SEI_MAX_ELEMENTS);
 
   type = payload_type;
   size = payload_size;
@@ -177,14 +160,14 @@ void write_sei_message(int id, byte* payload, int payload_size, int payload_type
     sei_message[id].data[offset++] = 0xFF;
     type = type - 255;
   }
-  sei_message[id].data[offset++] = type;
+  sei_message[id].data[offset++] = (byte) type;
 
   while ( size > 255 )
   {
     sei_message[id].data[offset++] = 0xFF;
     size = size - 255;
   }
-  sei_message[id].data[offset++] = size;
+  sei_message[id].data[offset++] = (byte) size;
 
   memcpy(sei_message[id].data + offset, payload, payload_size);
   offset += payload_size;
@@ -221,7 +204,7 @@ void finalize_sei_message(int id)
  *    0, if this is the normal packet \n
  *    1, if this is a aggregation packet
  *  \par Output
- *    the content of the sei message is cleared and ready for storing new 
+ *    the content of the sei message is cleared and ready for storing new
  *      messages
  ************************************************************************
  */
@@ -247,7 +230,7 @@ void clear_sei_message(int id)
 void AppendTmpbits2Buf( Bitstream* dest, Bitstream* source )
 {
   int i, j;
-  unsigned char mask;
+  byte mask;
   int bits_in_last_byte;
 
   // copy the first bytes in source buffer
@@ -273,7 +256,7 @@ void AppendTmpbits2Buf( Bitstream* dest, Bitstream* source )
   bits_in_last_byte = 8-source->bits_to_go;
   if ( bits_in_last_byte > 0 )
   {
-    mask = 1 << (bits_in_last_byte-1);
+    mask = (byte) (1 << (bits_in_last_byte-1));
     for (j=0; j<bits_in_last_byte; j++)
     {
       dest->byte_buf <<= 1;
@@ -295,7 +278,7 @@ void AppendTmpbits2Buf( Bitstream* dest, Bitstream* source )
  **++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  *  \functions on spare pictures
  *  \brief
- *     implementation of Spare Pictures related functions based on 
+ *     implementation of Spare Pictures related functions based on
  *      JVT-D100
  *  \author
  *      Dong Tian                 <tian@cs.tut.fi>
@@ -304,9 +287,8 @@ void AppendTmpbits2Buf( Bitstream* dest, Bitstream* source )
 
 // global variables for spare pictures
 
-// Tian Dong (Sept 2002)
-// In current implementation, Sept 2002, the spare picture info is 
-// paketized together with the immediately following frame. Thus we 
+// In current implementation, Sept 2002, the spare picture info is
+// paketized together with the immediately following frame. Thus we
 // define one set of global variables to save the info.
 Boolean seiHasSparePicture = FALSE;
 spare_picture_struct seiSparePicturePayload;
@@ -322,9 +304,9 @@ void InitSparePicture()
   if ( seiSparePicturePayload.data != NULL ) CloseSparePicture();
 
   seiSparePicturePayload.data = malloc( sizeof(Bitstream) );
-  assert( seiSparePicturePayload.data != NULL );
+  if ( seiSparePicturePayload.data == NULL ) no_mem_exit("InitSparePicture: seiSparePicturePayload.data");
   seiSparePicturePayload.data->streamBuffer = malloc(MAXRTPPAYLOADLEN);
-  assert( seiSparePicturePayload.data->streamBuffer != NULL );
+  if ( seiSparePicturePayload.data->streamBuffer == NULL ) no_mem_exit("InitSparePicture: seiSparePicturePayload.data->streamBuffer");
   memset( seiSparePicturePayload.data->streamBuffer, 0, MAXRTPPAYLOADLEN);
   seiSparePicturePayload.num_spare_pics = 0;
   seiSparePicturePayload.target_frame_num = 0;
@@ -342,10 +324,10 @@ void InitSparePicture()
  */
 void CloseSparePicture()
 {
-  if (seiSparePicturePayload.data->streamBuffer) 
+  if (seiSparePicturePayload.data->streamBuffer)
     free(seiSparePicturePayload.data->streamBuffer);
   seiSparePicturePayload.data->streamBuffer = NULL;
-  if (seiSparePicturePayload.data) 
+  if (seiSparePicturePayload.data)
     free(seiSparePicturePayload.data);
   seiSparePicturePayload.data = NULL;
   seiSparePicturePayload.num_spare_pics = 0;
@@ -391,7 +373,7 @@ void CalculateSparePicture()
 
   // basic check
   if (fb->picbuf_short[0]->used==0 || fb->picbuf_short[1]->used==0)
-  { 
+  {
 #ifdef WRITE_MAP_IMAGE
     fp = fopen( map_file_name, "wb" );
     assert( fp != NULL );
@@ -411,14 +393,14 @@ void CalculateSparePicture()
   }
   seiHasSparePicture = TRUE;
 
-  // set the global bitstream memory. 
+  // set the global bitstream memory.
   InitSparePicture();
   seiSparePicturePayload.target_frame_num = img->number % MAX_FN;
   // init the local bitstream memory.
   tmpBitstream = malloc(sizeof(Bitstream));
-  assert( tmpBitstream != NULL );
+  if ( tmpBitstream == NULL ) no_mem_exit("CalculateSparePicture: tmpBitstream");
   tmpBitstream->streamBuffer = malloc(MAXRTPPAYLOADLEN);
-  assert( tmpBitstream->streamBuffer != NULL );
+  if ( tmpBitstream->streamBuffer == NULL ) no_mem_exit("CalculateSparePicture: tmpBitstream->streamBuffer");
   memset( tmpBitstream->streamBuffer, 0, MAXRTPPAYLOADLEN);
 
 #ifdef WRITE_MAP_IMAGE
@@ -463,7 +445,7 @@ void CalculateSparePicture()
         tmp = 0;
         for (i0=0; i0<16; i0++)
           for (j0=0; j0<16; j0++)
-            tmp+=abs(fb->picbuf_short[m+1]->Refbuf11[(i*16+i0)*img->width+j*16+j0]-
+            tmp+=iabs(fb->picbuf_short[m+1]->Refbuf11[(i*16+i0)*img->width+j*16+j0]-
                        fb->picbuf_short[0]->Refbuf11[(i*16+i0)*img->width+j*16+j0]);
         tmp = (tmp<=threshold1? 255 : 0);
         map_sp[i][j] = (tmp==0? 1 : 0);
@@ -511,7 +493,7 @@ void CalculateSparePicture()
     }
 #endif
 
-    // Finnally, write the current spare picture information to 
+    // Finnally, write the current spare picture information to
     // the global variable: seiSparePicturePayload
     ComposeSparePictureMessage(delta_spare_frame_num, ref_area_indicator, tmpBitstream);
     seiSparePicturePayload.num_spare_pics++;
@@ -540,8 +522,8 @@ void CalculateSparePicture()
  *  \param tmpBitstream
  *      pointer to a buffer to save the payload
  *  \par Output
- *      bitstream: the composed spare picture payload are 
- *        ready to put into the sei_message. 
+ *      bitstream: the composed spare picture payload are
+ *        ready to put into the sei_message.
  ************************************************************************
  */
 void ComposeSparePictureMessage(int delta_spare_frame_num, int ref_area_indicator, Bitstream *tmpBitstream)
@@ -571,7 +553,7 @@ void ComposeSparePictureMessage(int delta_spare_frame_num, int ref_area_indicato
  *      pointer to a buffer to save the payload
  *  \return
  *      TRUE: If it is compressed version, \n
- *      FALSE: If it is not compressed.
+ *             FALSE: If it is not compressed.
  ************************************************************************
  */
 Boolean CompressSpareMBMap(unsigned char **map_sp, Bitstream *bitstream)
@@ -746,9 +728,9 @@ void FinalizeSpareMBMap()
 
   source = seiSparePicturePayload.data;
   dest = malloc(sizeof(Bitstream));
-  assert( dest != NULL );
+  if ( dest == NULL ) no_mem_exit("FinalizeSpareMBMap: dest");
   dest->streamBuffer = malloc(MAXRTPPAYLOADLEN);
-  assert( dest->streamBuffer != NULL );
+  if ( dest->streamBuffer == NULL ) no_mem_exit("FinalizeSpareMBMap: dest->streamBuffer");
   dest->bits_to_go  = 8;
   dest->byte_pos    = 0;
   dest->byte_buf    = 0;
@@ -817,7 +799,9 @@ void InitSubseqInfo(int currLayer)
   seiSubseqInfo[currLayer].payloadSize = 0;
 
   seiSubseqInfo[currLayer].data = malloc( sizeof(Bitstream) );
+  if ( seiSubseqInfo[currLayer].data == NULL ) no_mem_exit("InitSubseqInfo: seiSubseqInfo[currLayer].data");
   seiSubseqInfo[currLayer].data->streamBuffer = malloc( MAXRTPPAYLOADLEN );
+  if ( seiSubseqInfo[currLayer].data->streamBuffer == NULL ) no_mem_exit("InitSubseqInfo: seiSubseqInfo[currLayer].data->streamBuffer");
   seiSubseqInfo[currLayer].data->bits_to_go  = 8;
   seiSubseqInfo[currLayer].data->byte_pos    = 0;
   seiSubseqInfo[currLayer].data->byte_buf    = 0;
@@ -961,7 +945,7 @@ void InitSubseqLayerInfo()
 /*!
  ************************************************************************
  *  \brief
- *      
+ *
  ************************************************************************
  */
 void CloseSubseqLayerInfo()
@@ -1005,9 +989,9 @@ subseq_char_information_struct seiSubseqChar;
 void InitSubseqChar()
 {
   seiSubseqChar.data = malloc( sizeof(Bitstream) );
-  assert( seiSubseqChar.data != NULL );
+  if( seiSubseqChar.data == NULL ) no_mem_exit("InitSubseqChar: seiSubseqChar.data");
   seiSubseqChar.data->streamBuffer = malloc(MAXRTPPAYLOADLEN);
-  assert( seiSubseqChar.data->streamBuffer != NULL );
+  if( seiSubseqChar.data->streamBuffer == NULL ) no_mem_exit("InitSubseqChar: seiSubseqChar.data->streamBuffer");
   ClearSubseqCharPayload();
 
   seiSubseqChar.subseq_layer_num = img->layer;
@@ -1136,7 +1120,9 @@ void InitSceneInformation()
   seiSceneInformation.second_scene_id = -1;
 
   seiSceneInformation.data = malloc( sizeof(Bitstream) );
+  if( seiSceneInformation.data == NULL ) no_mem_exit("InitSceneInformation: seiSceneInformation.data");
   seiSceneInformation.data->streamBuffer = malloc( MAXRTPPAYLOADLEN );
+  if( seiSceneInformation.data->streamBuffer == NULL ) no_mem_exit("InitSceneInformation: seiSceneInformation.data->streamBuffer");
   seiSceneInformation.data->bits_to_go  = 8;
   seiSceneInformation.data->byte_pos    = 0;
   seiSceneInformation.data->byte_buf    = 0;
@@ -1189,8 +1175,8 @@ void FinalizeSceneInformation()
   seiSceneInformation.payloadSize = dest->byte_pos;
 }
 
-// HasSceneInformation: To include a scene information SEI into the next slice/DP, 
-//      set HasSceneInformation to be TRUE when calling this function. Otherwise, 
+// HasSceneInformation: To include a scene information SEI into the next slice/DP,
+//      set HasSceneInformation to be TRUE when calling this function. Otherwise,
 //      set HasSceneInformation to be FALSE.
 void UpdateSceneInformation(Boolean HasSceneInformation, int sceneID, int sceneTransType, int secondSceneID)
 {
@@ -1228,9 +1214,9 @@ void InitPanScanRectInfo()
 {
 
   seiPanScanRectInfo.data = malloc( sizeof(Bitstream) );
-  assert( seiPanScanRectInfo.data != NULL );
+  if( seiPanScanRectInfo.data == NULL ) no_mem_exit("InitPanScanRectInfo: seiPanScanRectInfo.data");
   seiPanScanRectInfo.data->streamBuffer = malloc(MAXRTPPAYLOADLEN);
-  assert( seiPanScanRectInfo.data->streamBuffer != NULL );
+  if( seiPanScanRectInfo.data->streamBuffer == NULL ) no_mem_exit("InitPanScanRectInfo: seiPanScanRectInfo.data->streamBuffer");
   ClearPanScanRectInfoPayload();
 
   seiPanScanRectInfo.pan_scan_rect_left_offset = 0;
@@ -1330,11 +1316,11 @@ void InitUser_data_unregistered()
 {
 
   seiUser_data_unregistered.data = malloc( sizeof(Bitstream) );
-  assert( seiUser_data_unregistered.data != NULL );
+  if( seiUser_data_unregistered.data == NULL ) no_mem_exit("InitUser_data_unregistered: seiUser_data_unregistered.data");
   seiUser_data_unregistered.data->streamBuffer = malloc(MAXRTPPAYLOADLEN);
-  assert( seiUser_data_unregistered.data->streamBuffer != NULL );
+  if( seiUser_data_unregistered.data->streamBuffer == NULL ) no_mem_exit("InitUser_data_unregistered: seiUser_data_unregistered.data->streamBuffer");
   seiUser_data_unregistered.byte = malloc(MAXRTPPAYLOADLEN);
-  assert( seiUser_data_unregistered.byte != NULL);
+  if( seiUser_data_unregistered.byte == NULL ) no_mem_exit("InitUser_data_unregistered: seiUser_data_unregistered.byte");
   ClearUser_data_unregistered();
 
 }
@@ -1364,7 +1350,7 @@ void UpdateUser_data_unregistered()
   for(i = 0; i < total_byte; i++)
   {
     temp_data = i * 4;
-    seiUser_data_unregistered.byte[i] = max(0, min(temp_data, 255));
+    seiUser_data_unregistered.byte[i] = (char) iClip3(0, 255, temp_data);
   }
   seiUser_data_unregistered.total_byte = total_byte;
 }
@@ -1435,11 +1421,11 @@ void InitUser_data_registered_itu_t_t35()
 {
 
   seiUser_data_registered_itu_t_t35.data = malloc( sizeof(Bitstream) );
-  assert( seiUser_data_registered_itu_t_t35.data != NULL );
+  if( seiUser_data_registered_itu_t_t35.data == NULL ) no_mem_exit("InitUser_data_unregistered: seiUser_data_registered_itu_t_t35.data");
   seiUser_data_registered_itu_t_t35.data->streamBuffer = malloc(MAXRTPPAYLOADLEN);
-  assert( seiUser_data_registered_itu_t_t35.data->streamBuffer != NULL );
+  if( seiUser_data_registered_itu_t_t35.data->streamBuffer == NULL ) no_mem_exit("InitUser_data_unregistered: seiUser_data_registered_itu_t_t35.data->streamBuffer");
   seiUser_data_registered_itu_t_t35.byte = malloc(MAXRTPPAYLOADLEN);
-  assert( seiUser_data_registered_itu_t_t35.byte != NULL);
+  if( seiUser_data_registered_itu_t_t35.data == NULL ) no_mem_exit("InitUser_data_unregistered: seiUser_data_registered_itu_t_t35.byte");
   ClearUser_data_registered_itu_t_t35();
 
 }
@@ -1469,11 +1455,11 @@ void UpdateUser_data_registered_itu_t_t35()
 
   country_code = 82; // Country_code for India
 
-  if(country_code < 0xFF) 
+  if(country_code < 0xFF)
   {
     seiUser_data_registered_itu_t_t35.itu_t_t35_country_code = country_code;
   }
-  else 
+  else
   {
     seiUser_data_registered_itu_t_t35.itu_t_t35_country_code = 0xFF;
     seiUser_data_registered_itu_t_t35.itu_t_t35_country_code_extension_byte = country_code - 0xFF;
@@ -1483,7 +1469,7 @@ void UpdateUser_data_registered_itu_t_t35()
   for(i = 0; i < total_byte; i++)
   {
     temp_data = i * 3;
-    seiUser_data_registered_itu_t_t35.byte[i] = max(0, min(temp_data, 255));
+    seiUser_data_registered_itu_t_t35.byte[i] = (char) iClip3(0, 255, temp_data);
   }
   seiUser_data_registered_itu_t_t35.total_byte = total_byte;
 }
@@ -1565,15 +1551,15 @@ void CloseUser_data_registered_itu_t_t35()
  *      Shankar Regunathan                 <tian@cs.tut.fi>
  **++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  */
-Boolean seiHasRandomAccess_info;
-randomaccess_information_struct seiRandomAccess;
+Boolean seiHasRecoveryPoint_info;
+recovery_point_information_struct seiRecoveryPoint;
 void InitRandomAccess()
 {
 
-  seiRandomAccess.data = malloc( sizeof(Bitstream) );
-  assert( seiRandomAccess.data != NULL );
-  seiRandomAccess.data->streamBuffer = malloc(MAXRTPPAYLOADLEN);
-  assert( seiRandomAccess.data->streamBuffer != NULL );
+  seiRecoveryPoint.data = malloc( sizeof(Bitstream) );
+  if( seiRecoveryPoint.data == NULL ) no_mem_exit("InitRandomAccess: seiRandomAccess.data");
+  seiRecoveryPoint.data->streamBuffer = malloc(MAXRTPPAYLOADLEN);
+  if( seiRecoveryPoint.data->streamBuffer == NULL ) no_mem_exit("InitRandomAccess: seiRandomAccess.data->streamBuffer");
   ClearRandomAccess();
 
 }
@@ -1581,17 +1567,17 @@ void InitRandomAccess()
 
 void ClearRandomAccess()
 {
-  memset( seiRandomAccess.data->streamBuffer, 0, MAXRTPPAYLOADLEN);
-  seiRandomAccess.data->bits_to_go  = 8;
-  seiRandomAccess.data->byte_pos    = 0;
-  seiRandomAccess.data->byte_buf    = 0;
-  seiRandomAccess.payloadSize       = 0;
+  memset( seiRecoveryPoint.data->streamBuffer, 0, MAXRTPPAYLOADLEN);
+  seiRecoveryPoint.data->bits_to_go  = 8;
+  seiRecoveryPoint.data->byte_pos    = 0;
+  seiRecoveryPoint.data->byte_buf    = 0;
+  seiRecoveryPoint.payloadSize       = 0;
 
-  seiRandomAccess.recovery_point_flag = 0;
-  seiRandomAccess.broken_link_flag = 0;
-  seiRandomAccess.exact_match_flag = 0;
+  seiRecoveryPoint.recovery_frame_cnt = 0;
+  seiRecoveryPoint.broken_link_flag = 0;
+  seiRecoveryPoint.exact_match_flag = 0;
 
-  seiHasRandomAccess_info = FALSE;
+  seiHasRecoveryPoint_info = FALSE;
 }
 
 void UpdateRandomAccess()
@@ -1599,64 +1585,58 @@ void UpdateRandomAccess()
 
   if(img->type == I_SLICE)
   {
-    seiRandomAccess.recovery_point_flag = 0;
-    seiRandomAccess.exact_match_flag = 1;
-    seiRandomAccess.broken_link_flag = 0;
-    seiHasRandomAccess_info = TRUE;
+    seiRecoveryPoint.recovery_frame_cnt = 0;
+    seiRecoveryPoint.exact_match_flag = 1;
+    seiRecoveryPoint.broken_link_flag = 0;
+    seiHasRecoveryPoint_info = TRUE;
   }
   else
   {
-    seiHasRandomAccess_info = FALSE;
+    seiHasRecoveryPoint_info = FALSE;
   }
 }
 
 void FinalizeRandomAccess()
 {
-  SyntaxElement sym;
-  Bitstream *dest = seiRandomAccess.data;
+  Bitstream *bitstream = seiRecoveryPoint.data;
 
-  sym.type = SE_HEADER;
-  sym.mapping = ue_linfo;
+  ue_v(   "SEI: recovery_frame_cnt",       seiRecoveryPoint.recovery_frame_cnt,       bitstream);
+  u_1 (   "SEI: exact_match_flag",         seiRecoveryPoint.exact_match_flag,         bitstream);
+  u_1 (   "SEI: broken_link_flag",         seiRecoveryPoint.broken_link_flag,         bitstream);
+  u_v (2, "SEI: changing_slice_group_idc", seiRecoveryPoint.changing_slice_group_idc, bitstream);
 
-  sym.value1 = seiRandomAccess.recovery_point_flag;
-  writeSyntaxElement2Buf_UVLC(&sym, dest);
 
-  sym.bitpattern = seiRandomAccess.exact_match_flag;
-  sym.len = 1;
-  writeSyntaxElement2Buf_Fixed(&sym, dest);
+// #define PRINT_RECOVERY_POINT
+#ifdef PRINT_RECOVERY_POINT
+  printf(" recovery_frame_cnt %d \n",       seiRecoveryPoint.recovery_frame_cnt);
+  printf(" exact_match_flag %d \n",         seiRecoveryPoint.exact_match_flag);
+  printf(" broken_link_flag %d \n",         seiRecoveryPoint.broken_link_flag);
+  printf(" changing_slice_group_idc %d \n", seiRecoveryPoint.changing_slice_group_idc);
+  printf(" %d %d \n", bitstream->byte_pos, bitstream->bits_to_go);
 
-  sym.bitpattern = seiRandomAccess.broken_link_flag;
-  sym.len = 1;
-  writeSyntaxElement2Buf_Fixed(&sym, dest);
-
-// #define PRINT_RANDOM_ACCESS
-#ifdef PRINT_RANDOM_ACCESS
-  printf(" recovery_point_flag %d exact_match_flag %d broken_link_flag %d \n", seiRandomAccess.recovery_point_flag, seiRandomAccess.exact_match_flag, seiRandomAccess.broken_link_flag);
-  printf(" %d %d \n", dest->byte_pos, dest->bits_to_go);
-#endif
-#ifdef PRINT_RANDOM_ACCESS
-#undef PRINT_RANDOM_ACCESS
+#undef PRINT_RECOVERY_POINT
 #endif
   // make sure the payload is byte aligned, stuff bits are 10..0
-  if ( dest->bits_to_go != 8 )
+  if ( bitstream->bits_to_go != 8 )
   {
-    (dest->byte_buf) <<= 1;
-    dest->byte_buf |= 1;
-    dest->bits_to_go--;
-    if ( dest->bits_to_go != 0 ) (dest->byte_buf) <<= (dest->bits_to_go);
-    dest->bits_to_go = 8;
-    dest->streamBuffer[dest->byte_pos++]=dest->byte_buf;
-    dest->byte_buf = 0;
+    (bitstream->byte_buf) <<= 1;
+    bitstream->byte_buf |= 1;
+    bitstream->bits_to_go--;
+    if ( bitstream->bits_to_go != 0 )
+      (bitstream->byte_buf) <<= (bitstream->bits_to_go);
+    bitstream->bits_to_go = 8;
+    bitstream->streamBuffer[bitstream->byte_pos++]=bitstream->byte_buf;
+    bitstream->byte_buf = 0;
   }
-  seiRandomAccess.payloadSize = dest->byte_pos;
+  seiRecoveryPoint.payloadSize = bitstream->byte_pos;
 }
 
 void CloseRandomAccess()
 {
-  if (seiRandomAccess.data)
+  if (seiRecoveryPoint.data)
   {
-    free(seiRandomAccess.data->streamBuffer);
-    free(seiRandomAccess.data);
+    free(seiRecoveryPoint.data->streamBuffer);
+    free(seiRecoveryPoint.data);
   }
-  seiRandomAccess.data = NULL;
+  seiRecoveryPoint.data = NULL;
 }

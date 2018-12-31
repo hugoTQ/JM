@@ -10,6 +10,11 @@
  *  \author
  *      Main contributors (see contributors.h for copyright, address and affiliation details)
  *      - Karsten Sühring          <suehring@hhi.de>
+ *      - Jill Boyce               <jill.boyce@thomson.net>
+ *      - Saurav K Bandyopadhyay   <saurav@ieee.org>
+ *      - Zhenyu Wu                <Zhenyu.Wu@thomson.net
+ *      - Purvin Pandit            <Purvin.Pandit@thomson.net>
+ *
  ***********************************************************************
  */
 #ifndef _MBUFFER_H_
@@ -28,12 +33,13 @@ typedef struct storable_picture
   int         top_poc;
   int         bottom_poc;
   int         frame_poc;
-  int         order_num;
   int64       ref_pic_num        [MAX_NUM_SLICES][6][MAX_LIST_SIZE];
   int64       frm_ref_pic_num    [MAX_NUM_SLICES][6][MAX_LIST_SIZE];
   int64       top_ref_pic_num    [MAX_NUM_SLICES][6][MAX_LIST_SIZE];
   int64       bottom_ref_pic_num [MAX_NUM_SLICES][6][MAX_LIST_SIZE];
   unsigned    frame_num;
+  unsigned    recovery_frame;
+
   int         pic_num;
   int         long_term_pic_num;
   int         long_term_frame_idx;
@@ -43,32 +49,33 @@ typedef struct storable_picture
   int         is_output;
   int         non_existing;
 
-  int         max_slice_id;
+  short       max_slice_id;
 
   int         size_x, size_y, size_x_cr, size_y_cr;
+  int         size_x_m1, size_y_m1, size_x_cr_m1, size_y_cr_m1;
   int         chroma_vector_adjustment;
   int         coded_frame;
   int         MbaffFrameFlag;
   unsigned    PicWidthInMbs;
   unsigned    PicSizeInMbs;
 
-  byte **     imgY;          //!< Y picture component
-  byte ***    imgUV;         //!< U and V picture components
+  imgpel **     imgY;         //!< Y picture component
+  imgpel ***    imgUV;        //!< U and V picture components
 
-  byte *      mb_field;      //!< field macroblock indicator
+  byte  *      mb_field;      //!< field macroblock indicator
 
-  int  **     slice_id;      //!< reference picture   [mb_x][mb_y]
+  short **     slice_id;      //!< reference picture   [mb_x][mb_y]
 
-  int  ***    ref_idx;       //!< reference picture   [list][subblock_x][subblock_y]
+  char  ***    ref_idx;       //!< reference picture   [list][subblock_y][subblock_x]
 
-  int64 ***    ref_pic_id;    //!< reference picture identifier [list][subblock_x][subblock_y]
-                             //   (not  simply index) 
+  int64 ***    ref_pic_id;    //!< reference picture identifier [list][subblock_y][subblock_x]
+                              //   (not  simply index)
 
-  int64 ***    ref_id;    //!< reference picture identifier [list][subblock_x][subblock_y]
-                             //   (not  simply index) 
+  int64 ***    ref_id;        //!< reference picture identifier [list][subblock_y][subblock_x]
+                              //   (not  simply index)
 
-  int  ****   mv;            //!< motion vector       [list][subblock_x][subblock_y][component]
-  
+  short ****   mv;            //!< motion vector       [list][subblock_y][subblock_x][component]
+
   byte **     moving_block;
   byte **     field_frame;         //!< indicates if co_located is field or frame.
 
@@ -82,14 +89,20 @@ typedef struct storable_picture
   int         long_term_reference_flag;
   int         adaptive_ref_pic_buffering_flag;
 
+  int         chroma_format_idc;
   int         frame_mbs_only_flag;
   int         frame_cropping_flag;
   int         frame_cropping_rect_left_offset;
   int         frame_cropping_rect_right_offset;
   int         frame_cropping_rect_top_offset;
   int         frame_cropping_rect_bottom_offset;
-
+  int         qp;
+  int         chroma_qp_offset[2];
+  int         slice_qp_delta;
   DecRefPicMarking_t *dec_ref_pic_marking_buffer;                    //!< stores the memory management control operations
+
+  // picture error concealment
+  int concealed_pic; //indicates if this is a concealed picutre
 
 } StorablePicture;
 
@@ -97,36 +110,32 @@ typedef struct storable_picture
 //! definition a picture (field or frame)
 typedef struct colocated_params
 {
-//  byte *      mb_field;      //!< field macroblock indicator
   int         mb_adaptive_frame_field_flag;
   int         size_x, size_y;
 
-  int64       ref_pic_num[6][MAX_LIST_SIZE];  
+  int64       ref_pic_num[6][MAX_LIST_SIZE];
 
-  int  ***    ref_idx;       //!< reference picture   [list][subblock_x][subblock_y]
-  int64 ***    ref_pic_id;    //!< reference picture identifier [list][subblock_x][subblock_y]
-  int  ****   mv;            //!< motion vector       [list][subblock_x][subblock_y][component]  
-  byte **     moving_block;
+  char  ***   ref_idx;       //!< reference picture   [list][subblock_y][subblock_x]
+  int64 ***   ref_pic_id;    //!< reference picture identifier [list][subblock_y][subblock_x]
+  short ****  mv;            //!< motion vector       [list][subblock_y][subblock_x][component]
+  byte  **    moving_block;
 
   // Top field params
-  int64       top_ref_pic_num[6][MAX_LIST_SIZE];  
-  int  ***    top_ref_idx;       //!< reference picture   [list][subblock_x][subblock_y]
-  int64 ***    top_ref_pic_id;    //!< reference picture identifier [list][subblock_x][subblock_y]
-  int  ****   top_mv;            //!< motion vector       [list][subblock_x][subblock_y][component]  
+  int64       top_ref_pic_num[6][MAX_LIST_SIZE];
+  char  ***   top_ref_idx;       //!< reference picture   [list][subblock_y][subblock_x]
+  int64 ***   top_ref_pic_id;    //!< reference picture identifier [list][subblock_y][subblock_x]
+  short ****  top_mv;            //!< motion vector       [list][subblock_y][subblock_x][component]
   byte **     top_moving_block;
 
   // Bottom field params
-  int64       bottom_ref_pic_num[6][MAX_LIST_SIZE];  
-  int  ***    bottom_ref_idx;       //!< reference picture   [list][subblock_x][subblock_y]
-  int64 ***    bottom_ref_pic_id;    //!< reference picture identifier [list][subblock_x][subblock_y]
-  int  ****   bottom_mv;            //!< motion vector       [list][subblock_x][subblock_y][component] 
+  int64       bottom_ref_pic_num[6][MAX_LIST_SIZE];
+  char  ***   bottom_ref_idx;       //!< reference picture   [list][subblock_y][subblock_x]
+  int64 ***   bottom_ref_pic_id;    //!< reference picture identifier [list][subblock_y][subblock_x]
+  short ****  bottom_mv;            //!< motion vector       [list][subblock_y][subblock_x][component]
   byte **     bottom_moving_block;
-  
-  int         is_long_term;
+
+  byte        is_long_term;
   byte **     field_frame;         //!< indicates if co_located is field or frame.
-  //struct colocated_params *top_field;     // for mb aff, if frame for referencing the top field
-  //struct colocated_params *bottom_field;  // for mb aff, if frame for referencing the bottom field
-  //struct colocated_params *frame;         // for mb aff, if field for referencing the combined frame
 
 } ColocatedParams;
 
@@ -141,10 +150,15 @@ typedef struct frame_store
   int       is_non_existent;
 
   unsigned  frame_num;
+  unsigned  recovery_frame;
+
   int       frame_num_wrap;
   int       long_term_frame_idx;
   int       is_output;
   int       poc;
+
+  // picture error concealment
+  int concealment_reference;
 
   StorablePicture *frame;
   StorablePicture *top_field;
@@ -177,21 +191,22 @@ extern DecodedPictureBuffer dpb;
 extern StorablePicture **listX[6];
 extern int listXsize[6];
 
-void             init_dpb();
-void             free_dpb();
-FrameStore*      alloc_frame_store();
+void             init_dpb(void);
+void             free_dpb(void);
+FrameStore*      alloc_frame_store(void);
 void             free_frame_store(FrameStore* f);
 StorablePicture* alloc_storable_picture(PictureStructure type, int size_x, int size_y, int size_x_cr, int size_y_cr);
 void             free_storable_picture(StorablePicture* p);
 void             store_picture_in_dpb(StorablePicture* p);
-void             flush_dpb();
+void             flush_dpb(void);
 
 void             dpb_split_field(FrameStore *fs);
 void             dpb_combine_field(FrameStore *fs);
+void             dpb_combine_field_yuv(FrameStore *fs);
 
 void             init_lists(int currSliceType, PictureStructure currPicStructure);
-void             reorder_ref_pic_list(StorablePicture **list, int *list_size, 
-                                      int num_ref_idx_lX_active_minus1, int *remapping_of_pic_nums_idc, 
+void             reorder_ref_pic_list(StorablePicture **list, int *list_size,
+                                      int num_ref_idx_lX_active_minus1, int *reordering_of_pic_nums_idc,
                                       int *abs_diff_pic_num_minus1, int *long_term_pic_idx);
 
 void             init_mbaff_lists();
@@ -201,8 +216,8 @@ void             free_ref_pic_list_reordering_buffer(Slice *currSlice);
 void             fill_frame_num_gap(ImageParameters *img);
 
 ColocatedParams* alloc_colocated(int size_x, int size_y,int mb_adaptive_frame_field_flag);
-void free_collocated(ColocatedParams* p);
-void compute_collocated(ColocatedParams* p, StorablePicture **listX[6]);
+void free_colocated(ColocatedParams* p);
+void compute_colocated(ColocatedParams* p, StorablePicture **listX[6]);
 
 #endif
 
